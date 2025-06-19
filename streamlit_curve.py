@@ -1,6 +1,6 @@
 # streamlit_curve_manager.py
 import streamlit as st
-st.set_page_config(page_title="產氣曲線管理", layout="wide")
+st.set_page_config(page_title="產氣曲線管理")
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -14,6 +14,33 @@ import threading
 
 # === GitHub 儲存工具 ===
 from github_utils import load_json_from_github, save_json_to_github
+
+
+def ensure_curve_local(curve_name):
+    local_path = f"curves/{curve_name}"
+    if not os.path.exists(local_path):
+        # 下載 github 上的 curves/{curve_name} 存本地
+        curve_data = load_json_from_github(f"curves/{curve_name}")
+        os.makedirs("curves", exist_ok=True)
+        with open(local_path, "w") as f:
+            json.dump(curve_data, f, indent=2)
+    return local_path
+
+def list_curves_on_github(subdir="curves"):
+    import requests, os
+    GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+    REPO = "antony910911/biogas_2"
+    BRANCH = "main"
+    url = f"https://api.github.com/repos/{REPO}/contents/{subdir}?ref={BRANCH}"
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    resp = requests.get(url, headers=headers)
+    if resp.status_code == 200:
+        files = [item["name"] for item in resp.json() if item["name"].endswith(".json")]
+        return files
+    return []
+
+
+
 
 # ==== 強制字型設定 ====
 font_path = "fonts/NotoSansTC-Regular.ttf"
@@ -102,13 +129,22 @@ if file:
             "normalized_yield": df['Normalized_Yield'].round(6).tolist(),
             "raw_yield": df['Yield'].tolist()
         }
+        # 本地存一份（非必要，可拿掉）
         with open(f"{CURVE_DIR}/{name}.json", "w") as f:
             json.dump(out, f, indent=2)
-        st.success(f"已儲存為 {name}.json")
+        # 雲端 GitHub 也存一份
+        from github_utils import save_json_to_github
+        save_json_to_github(f"curves/{name}.json", out, commit_msg=f"新增/更新標準曲線 {name}")
+
+        st.success(f"已儲存為 {name}.json，並同步上傳至 GitHub")
+
 
 # === 區塊 2：曲線列表 ===
 st.header("📚 已有曲線管理")
-curve_files = [f for f in os.listdir(CURVE_DIR) if f.endswith(".json")]
+
+# 新的（自動抓 github 曲線 json 檔名）
+curve_files = list_curves_on_github()
+
 selected = st.selectbox("選擇查看某條曲線", curve_files)
 if selected:
     with open(f"{CURVE_DIR}/{selected}") as f:

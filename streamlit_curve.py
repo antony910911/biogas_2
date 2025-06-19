@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import json
 import os
+import numpy as np
 from datetime import date
 from biogas_2 import BiogasAnalyzer
 from flask import Flask, request, jsonify
@@ -366,23 +367,36 @@ try:
         df_hist = pd.DataFrame(history[selected_day])
         st.dataframe(df_hist, use_container_width=True)
         fig, ax = plt.subplots(figsize=(8, 6))
-        bars = ax.bar(df_hist['Tank'], df_hist['volume'], color='gray', width=0.2)
+        n_bars = len(df_hist)
+        if n_bars == 1:
+            # 只有一槽：居中，條寬 0.4
+            bars = ax.bar([0], df_hist['volume'], color='gray', width=0.4)
+            ax.set_xticks([0])
+            ax.set_xticklabels(df_hist['Tank'])
+            ax.set_xlim(-0.5, 0.5)
+        else:
+            # 多槽：自適應寬度
+            x = np.arange(n_bars)
+            bar_width = min(0.6, 0.8 / n_bars)  # 槽多時自動窄一點
+            bars = ax.bar(x, df_hist['volume'], color='gray', width=bar_width)
+            ax.set_xticks(x)
+            ax.set_xticklabels(df_hist['Tank'])
+
         max_vol = df_hist['volume'].max()
         ax.set_ylim(0, max_vol * 1.20)
         for idx, row in df_hist.iterrows():
+            # 單槽與多槽時 idx 都對應 x 軸正確
+            if n_bars == 1:
+                xpos = 0
+            else:
+                xpos = idx
             ax.text(
-                idx,
+                xpos,
                 row['volume'] + max_vol * 0.02,
                 f"{row['volume']:.1f}",
                 ha='center', va='bottom', fontsize=14, fontweight='bold',
                 clip_on=False
             )
-
-        # ===== 新增：單一 bar 美化 =====
-        if len(df) == 1:
-            ax.set_xlim(-0.5, 0.5)
-        # ===========================
-        
         ax.set_title(f"{selected_day} 各槽預估產氣量", fontsize=18)
         ax.set_xlabel("槽別", fontsize=14)
         ax.set_ylabel("產氣量 Nm³", fontsize=14)

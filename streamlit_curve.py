@@ -399,7 +399,7 @@ try:
             )
         ax.set_title(f"{selected_day} 各槽預估產氣量", fontsize=18)
         ax.set_xlabel("槽別", fontsize=14)
-        ax.set_ylabel("產氣量 Nm³", fontsize=14)
+        ax.set_ylabel("產氣量 m³", fontsize=14)
         ax.tick_params(axis='both', labelsize=13)
         plt.tight_layout()
         st.pyplot(fig)

@@ -12,9 +12,9 @@ from biogas_2 import BiogasAnalyzer
 from flask import Flask, request, jsonify
 import threading
 
-# === GitHub 儲存工具 ===
-from github_utils import load_json_from_github, save_json_to_github
 
+# === GitHub 儲存工具 ===
+from github_utils import load_json_from_github, save_json_to_github, save_binary_to_github
 
 def ensure_curve_local(curve_name):
     local_path = f"curves/{curve_name}"
@@ -39,7 +39,6 @@ def list_curves_on_github(subdir="curves"):
         return files
     return []
 
-from github_utils import save_binary_to_github
 
 def push_png_to_github(local_path, remote_filename, commit_msg="自動上傳圖檔"):
     with open(local_path, "rb") as f:

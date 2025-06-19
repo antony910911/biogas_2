@@ -49,3 +49,25 @@ def save_json_to_github_subdir(subdir, filename, data, commit_msg="Upload curve 
 
 
 
+def save_binary_to_github(filepath, bin_data, commit_msg="Upload image via Streamlit"):
+    GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+    REPO = "antony910911/biogas_2"         # <<<<<< 記得替換
+    BRANCH = "main"
+    API_URL = f"https://api.github.com/repos/{REPO}/contents/{filepath}"
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+
+    # 查詢 SHA（如有同名檔案）
+    get_resp = requests.get(API_URL, headers=headers)
+    sha = get_resp.json().get("sha") if get_resp.status_code == 200 else None
+
+    b64_data = base64.b64encode(bin_data).decode()
+    body = {
+        "message": commit_msg,
+        "content": b64_data,
+        "branch": BRANCH,
+    }
+    if sha:
+        body["sha"] = sha
+    put_resp = requests.put(API_URL, headers=headers, json=body)
+    return put_resp.status_code in [200, 201]
+

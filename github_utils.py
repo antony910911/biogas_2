@@ -38,3 +38,14 @@ def save_json_to_github(filename, data, commit_msg="Update JSON via Streamlit"):
         body["sha"] = sha
     put_resp = requests.put(url, headers=headers, json=body)
     return put_resp.status_code in [200, 201]
+
+
+
+def save_json_to_github_subdir(subdir, filename, data, commit_msg="Upload curve via Streamlit"):
+    import os
+    # e.g. subdir = "curves", filename = "mycurve.json"
+    fullpath = f"{subdir}/{filename}"
+    return save_json_to_github(fullpath, data, commit_msg)
+
+
+

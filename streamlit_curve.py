@@ -39,6 +39,16 @@ def list_curves_on_github(subdir="curves"):
         return files
     return []
 
+from github_utils import save_binary_to_github
+
+def push_png_to_github(local_path, remote_filename, commit_msg="自動上傳圖檔"):
+    with open(local_path, "rb") as f:
+        img_bytes = f.read()
+    save_binary_to_github(
+        filepath=remote_filename,   # 例如 "figures/2024-06-19_daily_distribution.png"
+        bin_data=img_bytes,
+        commit_msg=commit_msg
+    )
 
 
 
@@ -263,6 +273,12 @@ if submitted:
     # 畫分布圖（本地產生圖片，不存 github）
     plot_path = analyzer.plot_daily_distribution(result, date_str=str(date_today))
     st.image(plot_path, caption=f"{date_today} 各槽預估產氣量", use_container_width=True)
+    # push到GitHub
+    push_png_to_github(
+        plot_path,
+        f"figures/{date_today}_daily_distribution.png",
+        commit_msg=f"每日產氣分布圖：{date_today}"
+    )
 
     # 累積圖也同步 github
     plot_path = analyzer.run_cumulative_pipeline(
@@ -272,6 +288,13 @@ if submitted:
         active_tanks=active_tanks
     )
     st.image(plot_path, caption="📈 累積沼氣量趨勢", use_container_width=True)
+    # push到GitHub
+    push_png_to_github(
+        plot_path,
+        f"figures/{date_today}_cumulative.png",
+        commit_msg=f"每日累積圖：{date_today}"
+    )
+
 
     csv = df_result.to_csv(index=False).encode('utf-8')
     st.download_button("📥 下載分析結果 CSV", csv, file_name="biogas_analysis_result.csv")
@@ -279,6 +302,12 @@ if submitted:
     # 疊加圖
     stacked_path = analyzer.run_stacked_pipeline(DAILY_RESULT_LOG, LOG_PATH, active_tanks)
     st.image(stacked_path, caption="📊 每日預估產氣 + 累積產氣量疊加圖（含各槽）", use_container_width=True)
+    # push到GitHub
+    push_png_to_github(
+        stacked_path,
+        f"figures/{date_today}_stacked.png",
+        commit_msg=f"每日疊加圖：{date_today}"
+    )
 
 # 首頁預設展示現有圖（如有）
 if not st.session_state.get("analysis_ran", False):

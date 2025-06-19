@@ -171,24 +171,40 @@ class BiogasAnalyzer:
                     y = y_offset + value / 2
                     ax1.text(i, y, f"{value:.1f}", ha='center', va='center', fontsize=12, weight='bold')
                     y_offset += value
-                    
+
        # ======= 新增：運行區間色塊 =======
         date_dt = [datetime.strptime(d, "%Y-%m-%d") for d in dates]
         x_vals = mdates.date2num(date_dt)
         for idx, tank in enumerate(df_est.columns):
-            # 找該槽有產氣的所有日期 index
-            tank_vols = df_est[tank].values
-            nonzero = [i for i, v in enumerate(tank_vols) if v > 0]
-            if not nonzero:
-                continue
-            start_idx, end_idx = nonzero[0], nonzero[-1]
-            start_x = x_vals[start_idx] - 0.5
-            end_x = x_vals[end_idx] + 0.5
-            ax1.axvspan(
-                start_x, end_x,
-                color=tank_colors[idx], alpha=0.12,
-                label=f"{tank}槽運行期" if idx==0 else None  # 避免重複圖例
-            )
+        tank_vols = df_est[tank].values
+        nonzero = [i for i, v in enumerate(tank_vols) if v > 0]
+        if not nonzero:
+            continue
+        # 運行區間
+        start_idx, end_idx = nonzero[0], nonzero[-1]
+        start_x = x_vals[start_idx]
+        end_x = x_vals[end_idx]
+
+        # 啟動日豎線
+        ax1.axvline(
+            x=start_x, color=tank_colors[idx], linestyle="--", linewidth=2, alpha=0.8,
+            label=f"{tank}槽啟動" if idx == 0 else None  # 只在圖例標記一次
+        )
+        # 結束日豎線
+        ax1.axvline(
+            x=end_x, color=tank_colors[idx], linestyle=":", linewidth=2, alpha=0.8,
+            label=f"{tank}槽結束" if idx == 0 else None
+        )
+        # 在豎線上方加註解
+        ax1.text(
+            start_x, ax1.get_ylim()[1]*0.97, f"{tank}啟動", color=tank_colors[idx],
+            ha="center", va="top", fontsize=11, fontweight="bold", rotation=90, alpha=0.8, clip_on=True
+        )
+        ax1.text(
+            end_x, ax1.get_ylim()[1]*0.97, f"{tank}結束", color=tank_colors[idx],
+            ha="center", va="top", fontsize=11, fontweight="bold", rotation=90, alpha=0.8, clip_on=True
+        )
+
         # ================================
 
 

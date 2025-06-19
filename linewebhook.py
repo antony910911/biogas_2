@@ -28,7 +28,8 @@ line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
 # === 公用參數 ===
-PHOTO_BASE_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/photo"
+PHOTO_BASE_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/figures"
+
 
 # === 工具函數：取得目前運轉中的槽與啟動日（與 Streamlit 完全同步） ===
 def get_active_tanks():
@@ -197,9 +198,18 @@ def handle_query_by_date_command(date_str):
         reply += f"槽 {item.get('Tank', '')}：{item.get('stage', '')} 第{item.get('day', '')}天\n產氣 {item.get('volume', 0):.1f} m³\n"
     reply += f"\n🔢 總產氣：{total:.1f} m³"
     images = [
-        ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/daily_plot_{date_str}.png", preview_image_url=f"{PHOTO_BASE_URL}/daily_plot_{date_str}.png"),
-        ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/stacked_{date_str}.png", preview_image_url=f"{PHOTO_BASE_URL}/stacked_{date_str}.png"),
-        ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/cumulative_plot_{date_str}.png", preview_image_url=f"{PHOTO_BASE_URL}/cumulative_plot_{date_str}.png"),
+        ImageSendMessage(
+            original_content_url=f"{PHOTO_BASE_URL}/{date_str}_daily_distribution.png",
+            preview_image_url=f"{PHOTO_BASE_URL}/{date_str}_daily_distribution.png"
+        ),
+        ImageSendMessage(
+            original_content_url=f"{PHOTO_BASE_URL}/{date_str}_stacked.png",
+            preview_image_url=f"{PHOTO_BASE_URL}/{date_str}_stacked.png"
+        ),
+        ImageSendMessage(
+            original_content_url=f"{PHOTO_BASE_URL}/{date_str}_cumulative.png",
+            preview_image_url=f"{PHOTO_BASE_URL}/{date_str}_cumulative.png"
+        ),
     ]
     return TextSendMessage(text=reply), images
 

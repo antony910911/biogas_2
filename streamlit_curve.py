@@ -1,14 +1,6 @@
 # streamlit_curve_manager.py
 import streamlit as st
-st.set_page_config(page_title="產氣曲線管理")
-from github_utils import load_json_from_github, save_json_to_github
-
-# 讀歷史
-history = load_json_from_github("daily_result_log.json")
-
-# 更新資料
-history["2024-06-19"] = [{"Tank": "A", "volume": 99.8}]
-save_json_to_github("daily_result_log.json", history)
+st.set_page_config(page_title="產氣曲線管理", layout="wide")
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -16,40 +8,34 @@ import matplotlib.font_manager as fm
 import json
 import os
 from datetime import date
-from biogas_analyzer import BiogasAnalyzer
+from biogas_2 import BiogasAnalyzer
 from flask import Flask, request, jsonify
 import threading
 
+# === GitHub 儲存工具 ===
+from github_utils import load_json_from_github, save_json_to_github
 
 # ==== 強制字型設定 ====
-import matplotlib.font_manager as fm
-import matplotlib.pyplot as plt
-
 font_path = "fonts/NotoSansTC-Regular.ttf"
-
 try:
     fm.fontManager.addfont(font_path)
     font_prop = fm.FontProperties(fname=font_path)
     font_name = font_prop.get_name()
-
     plt.rcParams['font.sans-serif'] = [font_name]
     plt.rcParams['axes.unicode_minus'] = False
-
-    print(f"✅ 現在用字型：{font_name}")
 except Exception as e:
-    print(f"[WARNING] 字型沒抓到，Fallback，Exception: {e}")
     plt.rcParams['font.sans-serif'] = ['sans-serif']
-
 
 st.title("🧪 沼氣產氣曲線管理中心")
 
-# === 路徑設定 ===
+# === 路徑設定（僅曲線存在本地）===
 CURVE_DIR = "curves"
 LOG_PATH = "cumulative_gas_log.json"
 DAILY_RESULT_LOG = "daily_result_log.json"
+ASSIGN_FILE = "curve_assignment.json"
 os.makedirs(CURVE_DIR, exist_ok=True)
 
-# === Webhook Flask app ===
+# === Webhook Flask app（可留可不留） ===
 app = Flask(__name__)
 
 @app.route("/reset_log", methods=["POST"])
@@ -103,7 +89,7 @@ if file:
     ax.set_xlabel("Day")
     ax.set_ylabel("Normalized Yield")
     ax.set_title("Biogas Production Curve")
-
+    st.pyplot(fig)
 
     name_default = os.path.splitext(file.name)[0]
     name = st.text_input("請輸入曲線名稱", value=name_default)
@@ -147,18 +133,16 @@ with col3:
 
 mapping = {"A": os.path.join(CURVE_DIR, a_curve), "B": os.path.join(CURVE_DIR, b_curve), "C": os.path.join(CURVE_DIR, c_curve)}
 if st.button("💾 儲存槽別指派設定"):
-    with open("curve_assignment.json", "w") as f:
-        json.dump(mapping, f, indent=2)
+    # 曲線指派設定也存 github
+    save_json_to_github(ASSIGN_FILE, mapping)
     st.success("已儲存槽別指派設定！")
 
 # === 區塊 4 :即時產氣分析設定表單（含啟動日鎖定功能） ===
 st.header("📊 即時產氣分析")
 if st.button("🧹 一鍵歸零累積紀錄"):
-    BiogasAnalyzer({}).reset_cumulative_log(LOG_PATH)
-    if os.path.exists(DAILY_RESULT_LOG):
-        os.remove(DAILY_RESULT_LOG)
-    if os.path.exists("cumulative_plot.png"):
-        os.remove("cumulative_plot.png")
+    # 歸零只影響 json，直接覆蓋 github json
+    save_json_to_github(LOG_PATH, {})
+    save_json_to_github(DAILY_RESULT_LOG, {})
     st.success("累積紀錄與圖表已清空！")
 
 with st.form("analysis_form"):
@@ -211,14 +195,12 @@ if submitted:
     if run_b: active_tanks["B"] = str(start_b)
     if run_c: active_tanks["C"] = str(start_c)
 
-
-    # 改為讀取儲存好的曲線指派
-    if os.path.exists("curve_assignment.json"):
-        with open("curve_assignment.json", "r") as f:
-            full_mapping = json.load(f)
+    # 從 github 讀取曲線指派設定
+    try:
+        full_mapping = load_json_from_github(ASSIGN_FILE)
         active_mapping = {k: full_mapping[k] for k in active_tanks if k in full_mapping}
-    else:
-        st.error("❗ 找不到 curve_assignment.json，請先在上方指派曲線")
+    except Exception as e:
+        st.error(f"❗ 無法讀取指派設定：{e}")
         st.stop()
 
     analyzer = BiogasAnalyzer(active_mapping)
@@ -226,32 +208,27 @@ if submitted:
         start_dates=active_tanks,
         today_str=str(date_today),
         total_gas=gas_input,
-        cumulative_log_path=LOG_PATH,  # 👈 這個一定要加上
+        cumulative_log_path=LOG_PATH,
         is_cumulative=True
     )
-
-
 
     df_result = pd.DataFrame(result).T.reset_index(names="Tank")
     st.subheader("📋 分析結果")
     st.dataframe(df_result, use_container_width=True)
 
-    if os.path.exists(DAILY_RESULT_LOG):
-        with open(DAILY_RESULT_LOG, "r") as f:
-            history = json.load(f)
-    else:
+    # 從 github 讀歷史，更新，寫回 github
+    try:
+        history = load_json_from_github(DAILY_RESULT_LOG)
+    except:
         history = {}
-
     history[str(date_today)] = df_result.to_dict(orient="records")
-    with open(DAILY_RESULT_LOG, "w") as f:
-        json.dump(history, f, indent=2, ensure_ascii=False)
+    save_json_to_github(DAILY_RESULT_LOG, history)
 
-    # 🔄 修正：僅針對當前啟用槽進行繪圖
-    active_df = df_result[df_result['Tank'].isin(active_tanks.keys())]
+    # 畫分布圖（本地產生圖片，不存 github）
     plot_path = analyzer.plot_daily_distribution(result, date_str=str(date_today))
     st.image(plot_path, caption=f"{date_today} 各槽預估產氣量", use_container_width=True)
 
-
+    # 累積圖也同步 github
     plot_path = analyzer.run_cumulative_pipeline(
         log_path=LOG_PATH,
         today=str(date_today),
@@ -263,56 +240,45 @@ if submitted:
     csv = df_result.to_csv(index=False).encode('utf-8')
     st.download_button("📥 下載分析結果 CSV", csv, file_name="biogas_analysis_result.csv")
 
-    # 疊加圖：預估產氣 + 累積產氣
-    if os.path.exists(LOG_PATH):
-        with open(LOG_PATH, "r") as f:
-            cumulative_data = json.load(f)
-
-        # 使用新版 function 畫 stacked 含各槽
+    # 疊加圖
     stacked_path = analyzer.run_stacked_pipeline(DAILY_RESULT_LOG, LOG_PATH, active_tanks)
     st.image(stacked_path, caption="📊 每日預估產氣 + 累積產氣量疊加圖（含各槽）", use_container_width=True)
 
-
-
-                
+# 首頁預設展示現有圖（如有）
 if not st.session_state.get("analysis_ran", False):
     if os.path.exists("cumulative_plot.png"):
         st.image("cumulative_plot.png", caption="📈 累積沼氣量趨勢", use_container_width=True)
-
     if os.path.exists("stacked_daily_cumulative.png"):
         st.image("stacked_daily_cumulative.png", caption="📊 每日預估產氣 + 累積產氣量疊加圖（含各槽）", use_container_width=True)
 
-
-# === 區塊 5：歷史預估產氣量查詢 ===
+# === 區塊 5：歷史預估產氣量查詢（全部讀 github） ===
 st.header("🕓 歷史預估產氣量查詢")
-if os.path.exists(DAILY_RESULT_LOG):
-    with open(DAILY_RESULT_LOG, "r") as f:
-        history = json.load(f)
+try:
+    history = load_json_from_github(DAILY_RESULT_LOG)
     dates = list(history.keys())
     selected_day = st.selectbox("選擇日期查看分析結果", options=sorted(dates, reverse=True))
-if selected_day:
-    df_hist = pd.DataFrame(history[selected_day])
-    st.dataframe(df_hist, use_container_width=True)
-    fig, ax = plt.subplots(figsize=(8, 6))
-    bars = ax.bar(df_hist['Tank'], df_hist['volume'], color='gray', width=0.5)
-    max_vol = df_hist['volume'].max()
-    ax.set_ylim(0, max_vol * 1.20)
-
-    for idx, row in df_hist.iterrows():
-        ax.text(
-            idx,
-            row['volume'] + max_vol * 0.02,
-            f"{row['volume']:.1f}",
-            ha='center', va='bottom', fontsize=14, fontweight='bold',
-            clip_on=False
-        )
-    ax.set_title(f"{selected_day} 各槽預估產氣量", fontsize=18)
-    ax.set_xlabel("槽別", fontsize=14)
-    ax.set_ylabel("產氣量 Nm³", fontsize=14)
-    ax.tick_params(axis='both', labelsize=13)
-    plt.tight_layout()
-    st.pyplot(fig)
-
-
-else:
-    st.info("尚無歷史紀錄。")
+    if selected_day:
+        df_hist = pd.DataFrame(history[selected_day])
+        st.dataframe(df_hist, use_container_width=True)
+        fig, ax = plt.subplots(figsize=(8, 6))
+        bars = ax.bar(df_hist['Tank'], df_hist['volume'], color='gray', width=0.5)
+        max_vol = df_hist['volume'].max()
+        ax.set_ylim(0, max_vol * 1.20)
+        for idx, row in df_hist.iterrows():
+            ax.text(
+                idx,
+                row['volume'] + max_vol * 0.02,
+                f"{row['volume']:.1f}",
+                ha='center', va='bottom', fontsize=14, fontweight='bold',
+                clip_on=False
+            )
+        ax.set_title(f"{selected_day} 各槽預估產氣量", fontsize=18)
+        ax.set_xlabel("槽別", fontsize=14)
+        ax.set_ylabel("產氣量 Nm³", fontsize=14)
+        ax.tick_params(axis='both', labelsize=13)
+        plt.tight_layout()
+        st.pyplot(fig)
+    else:
+        st.info("尚無歷史紀錄。")
+except Exception as e:
+    st.info(f"歷史紀錄讀取失敗：{e}")

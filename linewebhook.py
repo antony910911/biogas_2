@@ -11,8 +11,8 @@ from linebot.models import (
     MessageEvent, TextMessage, ImageMessage, TextSendMessage, ImageSendMessage
 )
 
-from biogas_analyzer_github import BiogasAnalyzer
-from streamlit_curve_manager import load_json_from_github, save_json_to_github
+from biogas_2 import BiogasAnalyzer
+from streamlit_curve import load_json_from_github, save_json_to_github
 
 # === 初始設定 ===
 load_dotenv()

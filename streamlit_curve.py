@@ -14,6 +14,15 @@ from flask import Flask, request, jsonify
 import threading
 import streamlit as st
 
+def get_secret(key, default=None):
+    # Streamlit secrets 優先，無則自動抓系統環境變數
+    try:
+        import streamlit as st
+        return st.secrets[key]
+    except Exception:
+        return os.environ.get(key, default)
+
+
 CONFIG_FILE = "user_config.json"
 tanks = ["A", "B", "C"]
 
@@ -39,11 +48,12 @@ for tank in tanks:
 
 
 
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
-LINE_CHANNEL_ACCESS_TOKEN = st.secrets["LINE_CHANNEL_ACCESS_TOKEN"]
-LINE_CHANNEL_SECRET = st.secrets["LINE_CHANNEL_SECRET"]
-GITHUB_REPO = st.secrets.get("GITHUB_REPO", "antony910911/biogas_2")
-GITHUB_BRANCH = st.secrets.get("GITHUB_BRANCH", "main")
+GITHUB_TOKEN = get_secret("GITHUB_TOKEN")
+LINE_CHANNEL_ACCESS_TOKEN = get_secret("LINE_CHANNEL_ACCESS_TOKEN")
+LINE_CHANNEL_SECRET = get_secret("LINE_CHANNEL_SECRET")
+GITHUB_REPO = get_secret("GITHUB_REPO", "antony910911/biogas_2")
+GITHUB_BRANCH = get_secret("GITHUB_BRANCH", "main")
+
 
 
 

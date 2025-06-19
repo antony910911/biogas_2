@@ -1,0 +1,10 @@
+{
+  "A": {
+    "start_date": "2025-06-10",
+    "lock": true
+  },
+  "B": {
+    "start_date": "2025-06-15",
+    "lock": false
+  }
+}

@@ -118,7 +118,7 @@ class BiogasAnalyzer:
         df = pd.DataFrame(result).T.reset_index(names="Tank")
         fig, ax = plt.subplots(figsize=(8, 6))
         colors = plt.cm.Set2(np.arange(len(df)))
-        bars = ax.bar(df['Tank'], df['volume'], color=colors)
+        bars = ax.bar(df['Tank'], df['volume'], color=colors, width=0.2)
         max_height = df['volume'].max()
         ax.set_ylim(0, max_height * 1.15)
         for bar, (_, row) in zip(bars, df.iterrows()):

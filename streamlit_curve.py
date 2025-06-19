@@ -334,7 +334,7 @@ try:
         df_hist = pd.DataFrame(history[selected_day])
         st.dataframe(df_hist, use_container_width=True)
         fig, ax = plt.subplots(figsize=(8, 6))
-        bars = ax.bar(df_hist['Tank'], df_hist['volume'], color='gray', width=0.5)
+        bars = ax.bar(df_hist['Tank'], df_hist['volume'], color='gray', width=0.2)
         max_vol = df_hist['volume'].max()
         ax.set_ylim(0, max_vol * 1.20)
         for idx, row in df_hist.iterrows():

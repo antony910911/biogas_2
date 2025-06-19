@@ -12,6 +12,7 @@ from datetime import date
 from biogas_2 import BiogasAnalyzer
 from flask import Flask, request, jsonify
 import threading
+import streamlit as st
 
 CONFIG_FILE = "user_config.json"
 tanks = ["A", "B", "C"]
@@ -35,6 +36,15 @@ for tank in tanks:
     st.session_state.setdefault(f"start_{tank.lower()}", user_config[tank]["start_date"])
     st.session_state.setdefault(f"lock_{tank.lower()}", user_config[tank]["lock"])
     st.session_state.setdefault(f"run_{tank.lower()}", user_config[tank]["run"])
+
+
+
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
+LINE_CHANNEL_ACCESS_TOKEN = st.secrets["LINE_CHANNEL_ACCESS_TOKEN"]
+LINE_CHANNEL_SECRET = st.secrets["LINE_CHANNEL_SECRET"]
+GITHUB_REPO = st.secrets.get("GITHUB_REPO", "antony910911/biogas_2")
+GITHUB_BRANCH = st.secrets.get("GITHUB_BRANCH", "main")
+
 
 
 # === GitHub 儲存工具 ===

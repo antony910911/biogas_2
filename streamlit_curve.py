@@ -10,7 +10,6 @@ import os
 import numpy as np
 from datetime import date
 from biogas_2 import BiogasAnalyzer
-from flask import Flask, request, jsonify
 import threading
 import streamlit as st
 

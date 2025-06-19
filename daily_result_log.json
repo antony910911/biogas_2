@@ -241,6 +241,14 @@
       "start_date": "2025-05-29",
       "stage": "結束期（已超出試程 6 天）",
       "volume": 193.0
+    },
+    {
+      "Tank": "B",
+      "day": -1,
+      "normalized": 0,
+      "start_date": "2025-06-19",
+      "stage": "尚未啟動（提前 1 天）",
+      "volume": 0.0
     }
   ]
 }

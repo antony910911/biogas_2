@@ -370,7 +370,7 @@ try:
         n_bars = len(df_hist)
         if n_bars == 1:
             # 只有一槽：居中，條寬 0.4
-            bars = ax.bar([0], df_hist['volume'], color='gray', width=0.4)
+            bars = ax.bar([0], df_hist['volume'], color='gray', width=0.2)
             ax.set_xticks([0])
             ax.set_xticklabels(df_hist['Tank'])
             ax.set_xlim(-0.5, 0.5)

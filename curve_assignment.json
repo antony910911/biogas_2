@@ -1,5 +1,5 @@
 {
-    "A": "curves/sample_curve.json",
-    "B": "curves/sample_curve.json",
-    "C": "curves/sample_curve.json"
+  "A": "curves/curve_test2.json",
+  "B": "curves/curve_test2.json",
+  "C": "curves/curve_test2.json"
 }

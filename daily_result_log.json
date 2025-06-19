@@ -132,7 +132,7 @@
       "normalized": 0.107143,
       "start_date": "2025-05-29",
       "stage": "衰退期",
-      "volume": 0.0
+      "volume": 86.4
     },
     {
       "Tank": "C",
@@ -140,7 +140,7 @@
       "normalized": 0.071429,
       "start_date": "2025-05-14",
       "stage": "結束期（已超出試程 15 天）",
-      "volume": 0.0
+      "volume": 57.6
     }
   ]
 }

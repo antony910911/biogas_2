@@ -118,9 +118,11 @@ class BiogasAnalyzer:
         df = pd.DataFrame(result).T.reset_index(names="Tank")
         fig, ax = plt.subplots(figsize=(8, 6))
         colors = plt.cm.Set2(np.arange(len(df)))
-        bars = ax.bar(df['Tank'], df['volume'], color=colors, width=0.2)
+        bars = ax.bar(df['Tank'], df['volume'], color=colors, width=0.5)  # width=0.5 更自然
+
         max_height = df['volume'].max()
         ax.set_ylim(0, max_height * 1.15)
+
         for bar, (_, row) in zip(bars, df.iterrows()):
             height = bar.get_height()
             if height > 0:
@@ -131,6 +133,11 @@ class BiogasAnalyzer:
                     ha='center', va='bottom', fontsize=12, fontweight='bold',
                     clip_on=False
                 )
+        # ===== 新增：單一 bar 美化 =====
+        if len(df) == 1:
+            ax.set_xlim(-0.5, 0.5)
+        # ===========================
+
         ax.set_ylabel("預估產氣量 m³", fontsize=14)
         ax.set_title(f"{date_str} 各槽預估產氣量", fontsize=16)
         ax.tick_params(labelsize=12)
@@ -138,6 +145,7 @@ class BiogasAnalyzer:
         plt.savefig(save_path)
         plt.close(fig)
         return save_path
+
 
     def plot_stacked_estimation_and_cumulative(self, daily_data: dict, cumulative_data: dict, active_tanks: dict, save_path: str = "stacked_daily_cumulative.png"):
         dates = sorted(cumulative_data.keys())

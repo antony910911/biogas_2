@@ -377,6 +377,12 @@ try:
                 ha='center', va='bottom', fontsize=14, fontweight='bold',
                 clip_on=False
             )
+
+        # ===== 新增：單一 bar 美化 =====
+        if len(df) == 1:
+            ax.set_xlim(-0.5, 0.5)
+        # ===========================
+        
         ax.set_title(f"{selected_day} 各槽預估產氣量", fontsize=18)
         ax.set_xlabel("槽別", fontsize=14)
         ax.set_ylabel("產氣量 Nm³", fontsize=14)

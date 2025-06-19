@@ -294,6 +294,15 @@ try:
     dates = list(history.keys())
     selected_day = st.selectbox("選擇日期查看分析結果", options=sorted(dates, reverse=True))
     if selected_day:
+        # 刪除按鈕
+        if st.button(f"🗑️ 刪除 {selected_day} 這一天的紀錄"):
+            if selected_day in history:
+                del history[selected_day]
+                save_json_to_github(DAILY_RESULT_LOG, history)
+                st.success(f"已刪除 {selected_day} 的紀錄")
+                st.experimental_rerun()
+            else:
+                st.warning("該日期已不在歷史紀錄中。")
         df_hist = pd.DataFrame(history[selected_day])
         st.dataframe(df_hist, use_container_width=True)
         fig, ax = plt.subplots(figsize=(8, 6))

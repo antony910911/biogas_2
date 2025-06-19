@@ -12,6 +12,29 @@ from biogas_2 import BiogasAnalyzer
 from flask import Flask, request, jsonify
 import threading
 
+CONFIG_FILE = "user_config.json"
+tanks = ["A", "B", "C"]
+
+# 載入雲端 user_config
+CONFIG_FILE = "user_config.json"
+tanks = ["A", "B", "C"]
+
+try:
+    user_config = load_json_from_github(CONFIG_FILE)
+except:
+    user_config = {}
+
+for tank in tanks:
+    if tank not in user_config:
+        user_config[tank] = {}
+    user_config[tank].setdefault("start_date", str(date.today()))
+    user_config[tank].setdefault("lock", False)
+    user_config[tank].setdefault("run", False)
+    # 初始化 session_state
+    st.session_state.setdefault(f"start_{tank.lower()}", user_config[tank]["start_date"])
+    st.session_state.setdefault(f"lock_{tank.lower()}", user_config[tank]["lock"])
+    st.session_state.setdefault(f"run_{tank.lower()}", user_config[tank]["run"])
+
 
 # === GitHub 儲存工具 ===
 from github_utils import load_json_from_github, save_json_to_github, save_binary_to_github
@@ -239,6 +262,15 @@ if submitted:
     if run_a: active_tanks["A"] = str(start_a)
     if run_b: active_tanks["B"] = str(start_b)
     if run_c: active_tanks["C"] = str(start_c)
+
+    # === 將 A/B/C 的設定寫入 user_config 並存到 GitHub ===
+    for tank in tanks:
+        user_config[tank]["start_date"] = str(st.session_state[f"start_{tank.lower()}"])
+        user_config[tank]["lock"] = st.session_state[f"lock_{tank.lower()}"]
+        user_config[tank]["run"] = st.session_state[f"run_{tank.lower()}"]
+    save_json_to_github(CONFIG_FILE, user_config)
+
+
 
     # 從 github 讀取曲線指派設定
     try:

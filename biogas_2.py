@@ -160,6 +160,25 @@ class BiogasAnalyzer:
                     ax1.text(i, y, f"{value:.1f}", ha='center', va='center', fontsize=12, weight='bold')
                     y_offset += value
 
+        # ======= 新增：運行區間色塊 =======
+        date_dt = [datetime.strptime(d, "%Y-%m-%d") for d in dates]
+        x_vals = mdates.date2num(date_dt)
+        for idx, tank in enumerate(df_est.columns):
+            # 找該槽有產氣的所有日期 index
+            tank_vols = df_est[tank].values
+            nonzero = [i for i, v in enumerate(tank_vols) if v > 0]
+            if not nonzero:
+                continue
+            start_idx, end_idx = nonzero[0], nonzero[-1]
+            start_x = x_vals[start_idx] - 0.5
+            end_x = x_vals[end_idx] + 0.5
+            ax1.axvspan(
+                start_x, end_x,
+                color=tank_colors[idx], alpha=0.12,
+                label=f"{tank}槽運行期" if idx==0 else None  # 避免重複圖例
+            )
+        # ================================
+
         ax2 = ax1.twinx()
         cumulative_values = [cumulative_data.get(d, 0) for d in dates]
         ax2.plot(dates, cumulative_values, color='blue', marker='o', label='累積產氣量')
@@ -176,6 +195,7 @@ class BiogasAnalyzer:
         plt.savefig(save_path)
         plt.close(fig)
         return save_path
+
 
     # --------- 這裡開始是 github 版 json 寫入 ---------
     def update_cumulative_log(self, log_path: str, today: str, gas_value: float):

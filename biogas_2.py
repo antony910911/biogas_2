@@ -5,8 +5,17 @@ import os
 import pandas as pd
 import numpy as np
 
+# 加入 github_utils：for log 檔案的 load/save
+try:
+    from github_utils import load_json_from_github, save_json_to_github
+except ImportError:
+    # 若未使用 github 直接運行，fallback 用本地
+    load_json_from_github = None
+    save_json_to_github = None
+
 class BiogasAnalyzer:
     def __init__(self, curve_json_dict):
+        # 標準曲線（本地存取）
         self.curves = {}
         for tank, curve_json_path in curve_json_dict.items():
             with open(curve_json_path, 'r') as f:
@@ -16,13 +25,25 @@ class BiogasAnalyzer:
         today = datetime.strptime(today_str, "%Y-%m-%d").date()
 
         last_cumulative = 0.0
-        if is_cumulative and cumulative_log_path and os.path.exists(cumulative_log_path):
-            with open(cumulative_log_path, 'r') as f:
-                log = json.load(f)
-            prior_dates = [d for d in log.keys() if d < today_str]
-            if prior_dates:
-                last_day = max(prior_dates)
-                last_cumulative = log.get(last_day, 0.0)
+        # 累積資料從 github 取
+        if is_cumulative and cumulative_log_path and load_json_from_github is not None:
+            try:
+                log = load_json_from_github(cumulative_log_path)
+                prior_dates = [d for d in log.keys() if d < today_str]
+                if prior_dates:
+                    last_day = max(prior_dates)
+                    last_cumulative = log.get(last_day, 0.0)
+            except Exception:
+                last_cumulative = 0.0
+        else:
+            # fallback 本地
+            if is_cumulative and cumulative_log_path and os.path.exists(cumulative_log_path):
+                with open(cumulative_log_path, 'r') as f:
+                    log = json.load(f)
+                prior_dates = [d for d in log.keys() if d < today_str]
+                if prior_dates:
+                    last_day = max(prior_dates)
+                    last_cumulative = log.get(last_day, 0.0)
 
         total_gas_today = max(total_gas - last_cumulative, 0)
 
@@ -77,17 +98,11 @@ class BiogasAnalyzer:
 
         fig, ax = plt.subplots(figsize=(10, 5))
         ax.plot(dates, values, marker='o', color='blue')
-
-        # ➕ 在每個點旁邊加上數值標籤
         for x, y in zip(dates, values):
-            ax.annotate(f"{int(y)}", xy=(x, y), xytext=(0, 8),  # 上移 8 點
-                        textcoords='offset points',
-                        ha='center', fontsize=10,
-                        clip_on=False)
-
-        # 🏷️ 圖表設定
+            ax.annotate(f"{int(y)}", xy=(x, y), xytext=(0, 8), textcoords='offset points',
+                        ha='center', fontsize=10, clip_on=False)
         tank_label = ", ".join([f"{k}({v})" for k, v in active_tanks.items()])
-        ax.set_ylim(0, max(values) * 1.15)  # 讓上面多 15% 空間
+        ax.set_ylim(0, max(values) * 1.15)
         ax.set_title(f"累積沼氣量趨勢\n運轉槽: {tank_label}", fontsize=16)
         ax.set_xlabel("日期", fontsize=14)
         ax.set_ylabel("累積產氣量 m³", fontsize=14)
@@ -103,23 +118,18 @@ class BiogasAnalyzer:
         fig, ax = plt.subplots(figsize=(8, 6))
         colors = plt.cm.Set2(np.arange(len(df)))
         bars = ax.bar(df['Tank'], df['volume'], color=colors)
-
-        # 設定最大高度，讓文字不會超出圖框
         max_height = df['volume'].max()
-        ax.set_ylim(0, max_height * 1.15)  # 例如高出 15%
-
-        # 加上每個 bar 的數值標籤
+        ax.set_ylim(0, max_height * 1.15)
         for bar, (_, row) in zip(bars, df.iterrows()):
             height = bar.get_height()
             if height > 0:
                 ax.text(
                     bar.get_x() + bar.get_width() / 2,
-                    height + max_height * 0.03,  # 上移一點點
+                    height + max_height * 0.03,
                     f"{row['volume']:.2f}",
                     ha='center', va='bottom', fontsize=12, fontweight='bold',
                     clip_on=False
                 )
-
         ax.set_ylabel("預估產氣量 m³", fontsize=14)
         ax.set_title(f"{date_str} 各槽預估產氣量", fontsize=16)
         ax.tick_params(labelsize=12)
@@ -139,12 +149,8 @@ class BiogasAnalyzer:
         df_est = df_est.fillna(0)
 
         fig, ax1 = plt.subplots(figsize=(14, 6))
-
-        # 🎨 設定顏色（可以自己換）
-        tank_colors = plt.cm.Set3.colors  # 較柔和的顏色組
+        tank_colors = plt.cm.Set3.colors
         bars = df_est.plot(kind='bar', stacked=True, ax=ax1, color=tank_colors[:len(df_est.columns)], edgecolor='black')
-
-        # 🧾 顯示每個 bar 的值（加大字體並避免被遮蓋）
         for i, date in enumerate(df_est.index):
             y_offset = 0
             for j, tank in enumerate(df_est.columns):
@@ -154,64 +160,82 @@ class BiogasAnalyzer:
                     ax1.text(i, y, f"{value:.1f}", ha='center', va='center', fontsize=12, weight='bold')
                     y_offset += value
 
-        # 📈 累積產氣線圖
         ax2 = ax1.twinx()
         cumulative_values = [cumulative_data.get(d, 0) for d in dates]
         ax2.plot(dates, cumulative_values, color='blue', marker='o', label='累積產氣量')
-
-        # 🎯 標題與軸設定
-        # 📌 顯示槽別名稱在標題中
         tank_label = ", ".join([f"{tank}({active_tanks.get(tank, '-')})" for tank in df_est.columns])
         ax1.set_xlabel("日期", fontsize=14)
         ax1.set_ylabel("預估產氣量 m³", color='black', fontsize=16)
         ax2.set_ylabel("累積產氣量 m³", color='blue', fontsize=16)
         ax1.set_title(f"每日預估產氣 + 累積產氣量疊加圖\n運轉槽: {tank_label}", fontsize=20, weight='bold')
-
         ax1.tick_params(axis='x', labelrotation=45, labelsize=12)
         ax1.tick_params(axis='y', labelsize=12)
         ax2.tick_params(axis='y', labelsize=12)
-
         ax1.legend(title="槽別", fontsize=12, loc="center left", bbox_to_anchor=(0.03, 0.88))
         plt.tight_layout()
         plt.savefig(save_path)
         plt.close(fig)
         return save_path
 
-
+    # --------- 這裡開始是 github 版 json 寫入 ---------
     def update_cumulative_log(self, log_path: str, today: str, gas_value: float):
-        if os.path.exists(log_path):
-            with open(log_path, "r") as f:
-                cumulative_data = json.load(f)
+        if load_json_from_github is not None:
+            try:
+                cumulative_data = load_json_from_github(log_path)
+            except Exception:
+                cumulative_data = {}
+            cumulative_data[today] = gas_value
+            save_json_to_github(log_path, cumulative_data)
         else:
-            cumulative_data = {}
-
-        cumulative_data[today] = gas_value
-
-        with open(log_path, "w") as f:
-            json.dump(cumulative_data, f, indent=2)
-
+            # fallback
+            if os.path.exists(log_path):
+                with open(log_path, "r") as f:
+                    cumulative_data = json.load(f)
+            else:
+                cumulative_data = {}
+            cumulative_data[today] = gas_value
+            with open(log_path, "w") as f:
+                json.dump(cumulative_data, f, indent=2)
         return cumulative_data
 
     def reset_cumulative_log(self, log_path: str):
-        with open(log_path, "w") as f:
-            json.dump({}, f, indent=2)
-        return {}
+        if save_json_to_github is not None:
+            save_json_to_github(log_path, {})
+            return {}
+        else:
+            with open(log_path, "w") as f:
+                json.dump({}, f, indent=2)
+            return {}
 
     def run_cumulative_pipeline(self, log_path: str, today: str, gas_value: float, active_tanks: dict, save_path: str = "cumulative_plot.png"):
-        cumulative_data = self.update_cumulative_log(log_path, today, gas_value)
-        return self.plot_cumulative(cumulative_data, active_tanks, save_path)
+        if load_json_from_github is not None:
+            cumulative_data = self.update_cumulative_log(log_path, today, gas_value)
+            return self.plot_cumulative(cumulative_data, active_tanks, save_path)
+        else:
+            # fallback 本地
+            cumulative_data = self.update_cumulative_log(log_path, today, gas_value)
+            return self.plot_cumulative(cumulative_data, active_tanks, save_path)
 
     def run_stacked_pipeline(self, daily_log_path: str, cumulative_log_path: str, active_tanks: dict, save_path: str = "stacked_daily_cumulative.png"):
-        if os.path.exists(daily_log_path):
-            with open(daily_log_path, "r") as f:
-                daily_data = json.load(f)
+        if load_json_from_github is not None:
+            try:
+                daily_data = load_json_from_github(daily_log_path)
+            except Exception:
+                daily_data = {}
+            try:
+                cumulative_data = load_json_from_github(cumulative_log_path)
+            except Exception:
+                cumulative_data = {}
         else:
-            daily_data = {}
-
-        if os.path.exists(cumulative_log_path):
-            with open(cumulative_log_path, "r") as f:
-                cumulative_data = json.load(f)
-        else:
-            cumulative_data = {}
-
+            # fallback
+            if os.path.exists(daily_log_path):
+                with open(daily_log_path, "r") as f:
+                    daily_data = json.load(f)
+            else:
+                daily_data = {}
+            if os.path.exists(cumulative_log_path):
+                with open(cumulative_log_path, "r") as f:
+                    cumulative_data = json.load(f)
+            else:
+                cumulative_data = {}
         return self.plot_stacked_estimation_and_cumulative(daily_data, cumulative_data, active_tanks, save_path)

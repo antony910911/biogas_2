@@ -216,8 +216,12 @@ def handle_today_gas_command(value_str, date_str=None):
             is_cumulative=True
         )
         history = load_json_from_github("daily_result_log.json")
-        history[date_str] = list(result.values())
+        # 強制寫入 Tank 資訊
+        history[date_str] = [
+            dict({"Tank": tank}, **item) for tank, item in result.items()
+        ]
         save_json_to_github("daily_result_log.json", history, f"記錄 {date_str} 產氣量")
+
         # 👇👇👇 這行修正，補齊 log_path 參數
         analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, value)
         analyzer.plot_daily_distribution(result, date_str)
@@ -332,7 +336,10 @@ def handle_batch_gas_input_command(msg):
                     cumulative_log_path="cumulative_gas_log.json",
                     is_cumulative=True
                 )
-                history[date_str] = list(result.values())
+                history[date_str] = [
+                    dict({"Tank": tank}, **item) for tank, item in result.items()
+                ]
+
                 analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, val)  # <<==== 這行修正
                 last_date = date_str
                 last_active_tanks = active_tanks    # <<==== 記住這個

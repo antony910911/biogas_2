@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import os
 import pandas as pd
 import numpy as np
-
+from github_utils import push_png_to_github
 # 加入 github_utils：for log 檔案的 load/save
 try:
     from github_utils import load_json_from_github, save_json_to_github
@@ -93,6 +93,8 @@ class BiogasAnalyzer:
             return f"結束期（已超出試程 {day - 14} 天）"
 
     def plot_cumulative(self, cumulative_data: dict, active_tanks: dict, save_path: str = "cumulative_plot.png"):
+        import matplotlib.pyplot as plt
+
         dates = sorted(cumulative_data.keys())
         values = [cumulative_data[d] for d in dates]
 
@@ -102,7 +104,7 @@ class BiogasAnalyzer:
             ax.annotate(f"{int(y)}", xy=(x, y), xytext=(0, 8), textcoords='offset points',
                         ha='center', fontsize=10, clip_on=False)
         tank_label = ", ".join([f"{k}({v})" for k, v in active_tanks.items()])
-        ax.set_ylim(0, max(values) * 1.15)
+        ax.set_ylim(0, max(values) * 1.15 if values else 1)
         ax.set_title(f"累積沼氣量趨勢\n運轉槽: {tank_label}", fontsize=16)
         ax.set_xlabel("日期", fontsize=14)
         ax.set_ylabel("累積產氣量 m³", fontsize=14)
@@ -111,6 +113,13 @@ class BiogasAnalyzer:
         plt.tight_layout()
         plt.savefig(save_path)
         plt.close(fig)
+        # === 自動推圖到 GitHub ===
+        try:
+            from github_utils import push_png_to_github
+            remote_name = f"figures/{os.path.basename(save_path)}"
+            push_png_to_github(save_path, remote_name, commit_msg="每日累積沼氣量趨勢圖")
+        except Exception as e:
+            print(f"[WARNING] push_png_to_github 失敗: {e}")
         return save_path
 
     def plot_daily_distribution(self, result: dict, date_str: str, save_path: str = "daily_distribution.png"):
@@ -136,9 +145,20 @@ class BiogasAnalyzer:
         plt.tight_layout()
         plt.savefig(save_path)
         plt.close(fig)
+            # === 新增：自動推圖到 GitHub
+        try:
+            from github_utils import push_png_to_github
+            remote_name = f"figures/{date_str}_daily_distribution.png"
+            push_png_to_github(save_path, remote_name, commit_msg=f"{date_str} 每日產氣分布圖")
+        except Exception as e:
+            print(f"[WARNING] push_png_to_github 失敗: {e}")
         return save_path
 
     def plot_stacked_estimation_and_cumulative(self, daily_data: dict, cumulative_data: dict, active_tanks: dict, save_path: str = "stacked_daily_cumulative.png"):
+        import matplotlib.pyplot as plt
+        import pandas as pd
+        import numpy as np
+
         dates = sorted(cumulative_data.keys())
         df_est = pd.DataFrame(index=dates)
         for date in dates:
@@ -159,7 +179,6 @@ class BiogasAnalyzer:
                     y = y_offset + value / 2
                     ax1.text(i, y, f"{value:.1f}", ha='center', va='center', fontsize=12, weight='bold')
                     y_offset += value
-
         ax2 = ax1.twinx()
         cumulative_values = [cumulative_data.get(d, 0) for d in dates]
         ax2.plot(dates, cumulative_values, color='blue', marker='o', label='累積產氣量')
@@ -175,6 +194,13 @@ class BiogasAnalyzer:
         plt.tight_layout()
         plt.savefig(save_path)
         plt.close(fig)
+        # === 自動推圖到 GitHub ===
+        try:
+            from github_utils import push_png_to_github
+            remote_name = f"figures/{os.path.basename(save_path)}"
+            push_png_to_github(save_path, remote_name, commit_msg="每日疊加圖")
+        except Exception as e:
+            print(f"[WARNING] push_png_to_github 失敗: {e}")
         return save_path
 
     # --------- 這裡開始是 github 版 json 寫入 ---------

@@ -325,8 +325,6 @@ def handle_batch_gas_input_command(msg):
     save_json_to_github("daily_result_log.json", history, "批次輸入多日產氣量")
 
     if last_date:
-        # 這裡重新取出上面最後一組 active_mapping/active_tanks
-        analyzer = BiogasAnalyzer(active_mapping)
         analyzer.plot_daily_distribution(history[last_date], last_date)
         analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", active_tanks)
         imgs = [
@@ -336,7 +334,8 @@ def handle_batch_gas_input_command(msg):
         ]
         return [TextSendMessage(text="\n".join(updated_dates))] + imgs
     else:
-        return [TextSendMessage(text="\n".join(updated_d_]()
+        return [TextSendMessage(text="\n".join(updated_dates))]
+
 
 
 # === Flask 啟動入口 ===

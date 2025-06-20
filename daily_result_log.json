@@ -34,5 +34,23 @@
       "stage": "結束期（已超出試程 9 天）",
       "volume": 5.67
     }
+  ],
+  "2025-06-06": [
+    {
+      "Tank": "A",
+      "day": -13,
+      "normalized": 0,
+      "start_date": "2025-06-20",
+      "stage": "尚未啟動（提前 13 天）",
+      "volume": 0
+    },
+    {
+      "Tank": "C",
+      "day": -13,
+      "normalized": 0,
+      "start_date": "2025-06-20",
+      "stage": "尚未啟動（提前 13 天）",
+      "volume": 0
+    }
   ]
 }

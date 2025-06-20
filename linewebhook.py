@@ -332,7 +332,7 @@ def handle_batch_gas_input_command(msg):
                     cumulative_log_path="cumulative_gas_log.json",
                     is_cumulative=True
                 )
-                history[date_str] = result
+                history[date_str] = list(result.values())
                 analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, val)  # <<==== 這行修正
                 last_date = date_str
                 last_active_tanks = active_tanks    # <<==== 記住這個

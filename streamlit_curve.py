@@ -178,47 +178,52 @@ if selected:
     st.pyplot(fig)
 
 # === 區塊 3：指派曲線 ===
-# 1. 先讀取雲端指派設定，取得預設值
-try:
-    last_assign = load_json_from_github(ASSIGN_FILE)
-    default_a = os.path.basename(last_assign.get("A", ""))
-    default_b = os.path.basename(last_assign.get("B", ""))
-    default_c = os.path.basename(last_assign.get("C", ""))
-except Exception:
-    default_a = default_b = default_c = None
+curve_files = list_curves_on_github()
+a_curve = b_curve = c_curve = None
 
-st.header("🧩 指派曲線給各槽")
-col1, col2, col3 = st.columns(3)
-with col1:
-    a_curve = st.selectbox(
-        "槽 A 使用的曲線",
-        curve_files,
-        index=curve_files.index(default_a) if default_a in curve_files else 0,
-        key="curve_a"
-    )
-with col2:
-    b_curve = st.selectbox(
-        "槽 B 使用的曲線",
-        curve_files,
-        index=curve_files.index(default_b) if default_b in curve_files else 0,
-        key="curve_b"
-    )
-with col3:
-    c_curve = st.selectbox(
-        "槽 C 使用的曲線",
-        curve_files,
-        index=curve_files.index(default_c) if default_c in curve_files else 0,
-        key="curve_c"
-    )
+if not curve_files:
+    st.warning("⚠️ 目前雲端 curves/ 沒有曲線 json 檔！請先新增。")
+else:
+    # 嘗試讀取 assignment，取得預設值
+    try:
+        assign = load_json_from_github(ASSIGN_FILE)
+        default_a = os.path.basename(assign.get("A", "")) if assign.get("A", "") else curve_files[0]
+        default_b = os.path.basename(assign.get("B", "")) if assign.get("B", "") else curve_files[0]
+        default_c = os.path.basename(assign.get("C", "")) if assign.get("C", "") else curve_files[0]
+    except Exception:
+        default_a = default_b = default_c = curve_files[0]
 
-mapping = {
-    "A": os.path.join(CURVE_DIR, a_curve),
-    "B": os.path.join(CURVE_DIR, b_curve),
-    "C": os.path.join(CURVE_DIR, c_curve)
-}
-if st.button("💾 儲存槽別指派設定"):
-    save_json_to_github(ASSIGN_FILE, mapping)
-    st.success("已儲存槽別指派設定！")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        a_curve = st.selectbox(
+            "槽 A 使用的曲線", curve_files,
+            index=curve_files.index(default_a) if default_a in curve_files else 0,
+            key="curve_a"
+        )
+    with col2:
+        b_curve = st.selectbox(
+            "槽 B 使用的曲線", curve_files,
+            index=curve_files.index(default_b) if default_b in curve_files else 0,
+            key="curve_b"
+        )
+    with col3:
+        c_curve = st.selectbox(
+            "槽 C 使用的曲線", curve_files,
+            index=curve_files.index(default_c) if default_c in curve_files else 0,
+            key="curve_c"
+        )
+
+    if a_curve and b_curve and c_curve:
+        mapping = {
+            "A": f"curves/{a_curve}",
+            "B": f"curves/{b_curve}",
+            "C": f"curves/{c_curve}"
+        }
+        if st.button("💾 儲存槽別指派設定"):
+            save_json_to_github(ASSIGN_FILE, mapping)
+            st.success("已儲存槽別指派設定！")
+    else:
+        st.info("請確認三個槽都已選擇曲線檔案。")
 
 
 # === 區塊 4 :即時產氣分析設定表單（含啟動日鎖定功能） ===

@@ -1,17 +1,17 @@
 {
   "A": {
-    "start_date": "2025-06-19",
+    "start_date": "2025-06-20",
     "lock": true,
     "run": true
   },
   "B": {
-    "start_date": "2025-06-19",
+    "start_date": "2025-06-20",
     "lock": false,
     "run": false
   },
   "C": {
-    "start_date": "2025-06-19",
-    "lock": false,
-    "run": false
+    "start_date": "2025-06-20",
+    "lock": true,
+    "run": true
   }
 }

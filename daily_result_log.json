@@ -73,18 +73,20 @@
   ],
   "2025-06-08": [
     {
-      "day": -11,
-      "normalized": 0,
-      "start_date": "2025-06-20",
-      "stage": "尚未啟動（提前 11 天）",
-      "volume": 0
+      "Tank": "A",
+      "day": 11,
+      "normalized": 0.214286,
+      "start_date": "2025-05-29",
+      "stage": "衰退期",
+      "volume": 54.22
     },
     {
-      "day": -11,
-      "normalized": 0,
-      "start_date": "2025-06-20",
-      "stage": "尚未啟動（提前 11 天）",
-      "volume": 0
+      "Tank": "C",
+      "day": 26,
+      "normalized": 0.082143,
+      "start_date": "2025-05-14",
+      "stage": "結束期（已超出試程 12 天）",
+      "volume": 20.78
     }
   ]
 }

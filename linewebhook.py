@@ -216,7 +216,7 @@ def handle_today_gas_command(value_str, date_str=None):
             is_cumulative=True
         )
         history = load_json_from_github("daily_result_log.json")
-        history[date_str] = result
+        history[date_str] = list(result.values())
         save_json_to_github("daily_result_log.json", history, f"記錄 {date_str} 產氣量")
         # 👇👇👇 這行修正，補齊 log_path 參數
         analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, value)

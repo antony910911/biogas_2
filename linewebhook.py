@@ -319,18 +319,16 @@ def handle_batch_gas_input_command(msg):
     updated_dates = []
     last_date = None
 
-    # 讀兩份設定只讀一次
     user_config = load_json_from_github("user_config.json")
     full_mapping = load_json_from_github("curve_assignment.json")
 
-    analyzer = None  # 延後定義，給最後一個日期做圖用
+    analyzer = None  # 延後定義
 
     for line in lines:
         if line.strip():
             try:
                 date_str, val = line.strip().split()
                 val = float(val)
-                # 每次都即時抓最新的「目前運轉中的槽」與對應啟動日
                 active_tanks = {tank: conf["start_date"] for tank, conf in user_config.items() if conf.get("run", False)}
                 active_mapping = {k: full_mapping[k] for k in active_tanks if k in full_mapping}
 
@@ -342,19 +340,14 @@ def handle_batch_gas_input_command(msg):
                     cumulative_log_path="cumulative_gas_log.json",
                     is_cumulative=True
                 )
-                # 強制寫入 Tank
                 history[date_str] = [
                     dict({"Tank": tank}, **item) for tank, item in result.items()
                 ]
-                # 同步寫入 cumulative log
                 analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, val)
-
-                # 產圖與 push 圖（每一天都做！）
                 analyzer.plot_daily_distribution(result, date_str)
                 analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", active_tanks)
                 analyzer.run_cumulative_pipeline("cumulative_gas_log.json", date_str, val, active_tanks)
-
-                last_date = date_str  # 用於最後回傳圖片
+                last_date = date_str
                 updated_dates.append(f"{date_str} ✔ {val} m³")
             except Exception as e:
                 updated_dates.append(f"{line.strip()} ❌ 格式錯誤 ({e})")
@@ -369,8 +362,6 @@ def handle_batch_gas_input_command(msg):
             ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{last_date}_cumulative.png", preview_image_url=f"{PHOTO_BASE_URL}/{last_date}_cumulative.png"),
         ]
     return [TextSendMessage(text="\n".join(updated_dates))] + imgs
-    else:
-        return [TextSendMessage(text="\n".join(updated_dates))]
 
 
 

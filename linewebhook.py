@@ -1,6 +1,7 @@
 import os
 import requests
 import base64
+import re
 from datetime import date, datetime, timedelta
 from dotenv import load_dotenv
 
@@ -89,12 +90,21 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, reply)
         return
 
-    # 今日產氣：今日產氣 720
+    # 1️⃣ yyyy-mm-dd 數值（推薦！）
+    match = re.match(r"(\d{4}-\d{2}-\d{2})\s+([0-9.]+)", msg)
+    if match:
+        date_str, value_str = match.groups()
+        replies = handle_today_gas_command(value_str, date_str=date_str)
+        line_bot_api.reply_message(event.reply_token, replies)
+        return
+
+    # 2️⃣ 今日產氣 xxx 傳統格式（保留向下相容）
     if msg.startswith("今日產氣"):
         value_str = msg.replace("今日產氣", "").strip()
         replies = handle_today_gas_command(value_str)
         line_bot_api.reply_message(event.reply_token, replies)
         return
+
 
     # 啟動/結束
     if "啟動" in msg or "結束" in msg:
@@ -145,46 +155,52 @@ def handle_image(event):
 def handle_help_command():
     return TextSendMessage(text=(
         "✅ 支援指令一覽：\n"
-        "1️⃣ 啟動/結束紀錄：\n"
-        "    例：6/10 A槽 啟動、6/20 A槽 結束\n"
-        "2️⃣ 查詢目前狀態：\n"
-        "    ➤ 指令：目前階段\n"
-        "3️⃣ 登記今日產氣量：\n"
+        "1️⃣ 單日登記產氣量（推薦）：\n"
+        "    ➤ 格式：YYYY-MM-DD 數值\n"
+        "    例：2025-06-19 3000\n"
+        "2️⃣ 多日批次輸入：\n"
+        "    ➤ 格式：多行 YYYY-MM-DD 數值（可一次貼上多天）\n"
+        "    例：\n"
+        "        2025-06-19 3000\n"
+        "        2025-06-18 2800\n"
+        "        2025-06-17 2500\n"
+        "3️⃣ 傳統登記今日產氣（支援向下相容）：\n"
         "    ➤ 指令：今日產氣 720\n"
-        "4️⃣ 查詢指定日期：\n"
+        "4️⃣ 啟動/結束紀錄：\n"
+        "    例：6/10 A槽 啟動、6/20 A槽 結束\n"
+        "5️⃣ 查詢目前狀態：\n"
+        "    ➤ 指令：目前階段\n"
+        "6️⃣ 查詢指定日期：\n"
         "    ➤ 指令：查詢 2025-06-15\n"
-        "5️⃣ 產氣週報：\n"
+        "7️⃣ 產氣週報：\n"
         "    ➤ 指令：週報\n"
-        "6️⃣ 多日批次輸入：\n"
-        "    ➤ 格式：多行 YYYY-MM-DD 數值（貼上多行）\n"
-        "7️⃣ AI 分析摘要：\n"
+        "8️⃣ AI 分析摘要：\n"
         "    ➤ 指令：AI分析"
     ))
 
 # === 今日產氣指令（直接用 get_active_tanks） ===
-def handle_today_gas_command(value_str):
+def handle_today_gas_command(value_str, date_str=None):
     try:
         value = float(value_str)
-        today_str = str(date.today())
+        if date_str is None:
+            date_str = str(date.today())
         active_tanks = get_active_tanks()
         analyzer = BiogasAnalyzer(active_tanks)
-        result = analyzer.analyze(active_tanks, today_str, value)
+        result = analyzer.analyze(active_tanks, date_str, value)
         history = load_json_from_github("daily_result_log.json")
-        history[today_str] = result
-        save_json_to_github("daily_result_log.json", history, f"記錄 {today_str} 產氣量")
-        analyzer.update_cumulative_log(today_str, value)
-        # 產圖
-        analyzer.plot_daily_distribution(result, today_str)
+        history[date_str] = result
+        save_json_to_github("daily_result_log.json", history, f"記錄 {date_str} 產氣量")
+        analyzer.update_cumulative_log(date_str, value)
+        analyzer.plot_daily_distribution(result, date_str)
         analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", active_tanks)
-        # 回傳圖片
         imgs = [
-            ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/daily_plot_{today_str}.png", preview_image_url=f"{PHOTO_BASE_URL}/daily_plot_{today_str}.png"),
-            ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/stacked_{today_str}.png", preview_image_url=f"{PHOTO_BASE_URL}/stacked_{today_str}.png"),
-            ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/cumulative_plot_{today_str}.png", preview_image_url=f"{PHOTO_BASE_URL}/cumulative_plot_{today_str}.png"),
+            ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{date_str}_daily_distribution.png", preview_image_url=f"{PHOTO_BASE_URL}/{date_str}_daily_distribution.png"),
+            ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{date_str}_stacked.png", preview_image_url=f"{PHOTO_BASE_URL}/{date_str}_stacked.png"),
+            ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{date_str}_cumulative.png", preview_image_url=f"{PHOTO_BASE_URL}/{date_str}_cumulative.png"),
         ]
-        return [TextSendMessage(text=f"✅ 已記錄今日產氣量：{value:.1f} m³")] + imgs
+        return [TextSendMessage(text=f"✅ 已記錄 {date_str} 產氣量：{value:.1f} m³")] + imgs
     except Exception as e:
-        return [TextSendMessage(text=f"❌ 請輸入正確格式，例如：今日產氣 720\n({e})")]
+        return [TextSendMessage(text=f"❌ 請輸入正確格式，例如：2025-06-19 720\n({e})")]
 
 # === 查詢指定日期 ===
 def handle_query_by_date_command(date_str):

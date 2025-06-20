@@ -94,8 +94,21 @@ def handle_message(event):
     match = re.match(r"(\d{4}-\d{2}-\d{2})\s+([0-9.]+)", msg)
     if match:
         date_str, value_str = match.groups()
-        replies = handle_today_gas_command(value_str, date_str=date_str)
-        line_bot_api.reply_message(event.reply_token, replies)
+        # **1. 先立即回覆一則確認訊息（超快完成，不會 timeout）**
+        line_bot_api.reply_message(event.reply_token, [
+            TextSendMessage(text=f"✅ 已收到 {date_str} 產氣量輸入：{value_str} m³，圖表稍後送達")
+        ])
+
+        # **2. 然後再做耗時操作（產圖、上傳、分析），最後用 push_message 回傳圖表**
+        try:
+            replies = handle_today_gas_command(value_str, date_str=date_str)
+            # 找出所有圖片訊息
+            imgs = [msg for msg in replies if isinstance(msg, ImageSendMessage)]
+            # 用 push_message 單獨送圖片
+            for img in imgs:
+                line_bot_api.push_message(event.source.user_id, img)
+        except Exception as e:
+            line_bot_api.push_message(event.source.user_id, TextSendMessage(text=f"❌ 圖片產生失敗：{e}"))
         return
 
     # 2️⃣ 今日產氣 xxx 傳統格式（保留向下相容）

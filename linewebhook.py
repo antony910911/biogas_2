@@ -205,7 +205,8 @@ def handle_today_gas_command(value_str, date_str=None):
         history = load_json_from_github("daily_result_log.json")
         history[date_str] = result
         save_json_to_github("daily_result_log.json", history, f"記錄 {date_str} 產氣量")
-        analyzer.update_cumulative_log(date_str, value)
+        # 👇👇👇 這行修正，補齊 log_path 參數
+        analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, value)
         analyzer.plot_daily_distribution(result, date_str)
         analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", active_tanks)
         imgs = [
@@ -224,6 +225,9 @@ def handle_query_by_date_command(date_str):
     if date_str not in history:
         return TextSendMessage(text=f"❌ 查無 {date_str} 紀錄"), []
     items = history[date_str]
+    if not items:
+        return TextSendMessage(text=f"⚠️ {date_str} 當天沒有各槽紀錄。"), []
+
     total = sum(i['volume'] for i in items)
     reply = f"📅 {date_str} 各槽產氣狀態：\n"
     for item in items:
@@ -316,8 +320,10 @@ def handle_batch_gas_input_command(msg):
                     is_cumulative=True
                 )
                 history[date_str] = result
-                analyzer.update_cumulative_log(date_str, val)
+                analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, val)  # <<==== 這行修正
                 last_date = date_str
+                last_active_tanks = active_tanks    # <<==== 記住這個
+                last_analyzer = analyzer            # <<==== 記住這個
                 updated_dates.append(f"{date_str} ✔ {val} m³")
             except Exception as e:
                 updated_dates.append(f"{line.strip()} ❌ 格式錯誤 ({e})")
@@ -325,8 +331,8 @@ def handle_batch_gas_input_command(msg):
     save_json_to_github("daily_result_log.json", history, "批次輸入多日產氣量")
 
     if last_date:
-        analyzer.plot_daily_distribution(history[last_date], last_date)
-        analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", active_tanks)
+        last_analyzer.plot_daily_distribution(history[last_date], last_date)
+        last_analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", last_active_tanks)
         imgs = [
             ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{last_date}_daily_distribution.png", preview_image_url=f"{PHOTO_BASE_URL}/{last_date}_daily_distribution.png"),
             ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{last_date}_stacked.png", preview_image_url=f"{PHOTO_BASE_URL}/{last_date}_stacked.png"),

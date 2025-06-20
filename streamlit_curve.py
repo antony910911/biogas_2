@@ -13,15 +13,6 @@ from biogas_2 import BiogasAnalyzer
 import threading
 import streamlit as st
 
-def get_secret(key, default=None):
-    # Streamlit secrets 優先，無則自動抓系統環境變數
-    try:
-        import streamlit as st
-        return st.secrets[key]
-    except Exception:
-        return os.environ.get(key, default)
-
-
 CONFIG_FILE = "user_config.json"
 tanks = ["A", "B", "C"]
 
@@ -46,6 +37,13 @@ for tank in tanks:
     st.session_state.setdefault(f"run_{tank.lower()}", user_config[tank]["run"])
 
 
+
+def get_secret(key, default=None):
+    try:
+        import streamlit as st
+        return st.secrets[key]
+    except Exception:
+        return os.environ.get(key, default)
 
 GITHUB_TOKEN = get_secret("GITHUB_TOKEN")
 LINE_CHANNEL_ACCESS_TOKEN = get_secret("LINE_CHANNEL_ACCESS_TOKEN")
@@ -113,6 +111,7 @@ LOG_PATH = "cumulative_gas_log.json"
 DAILY_RESULT_LOG = "daily_result_log.json"
 ASSIGN_FILE = "curve_assignment.json"
 os.makedirs(CURVE_DIR, exist_ok=True)
+
 
 
 # 預設初始化 session state（防止第一次提交無效）
@@ -197,7 +196,6 @@ if selected:
     ax.set_title(f"{data['name']} 曲線圖")
     st.pyplot(fig)
 
-# === 區塊 3：指派曲線 ===
 # === 區塊 3：指派曲線 ===
 st.header("🧩 指派曲線給各槽")
 col1, col2, col3 = st.columns(3)

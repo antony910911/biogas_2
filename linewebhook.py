@@ -185,16 +185,18 @@ def handle_today_gas_command(value_str, date_str=None):
         if date_str is None:
             date_str = str(date.today())
 
-        # 讀 user_config 得到 active_tanks（槽別→啟動日）
+        # 1. 讀「user_config」→ 取得 active_tanks
         user_config = load_json_from_github("user_config.json")
         active_tanks = {tank: conf["start_date"] for tank, conf in user_config.items() if conf.get("run", False)}
-        # 讀 curve_assignment 得到 active_mapping（槽別→曲線路徑）
+
+        # 2. 讀「curve_assignment」→ 取得 active_mapping
         full_mapping = load_json_from_github("curve_assignment.json")
         active_mapping = {k: full_mapping[k] for k in active_tanks if k in full_mapping}
 
+        # 3. BiogasAnalyzer 必須用 active_mapping
         analyzer = BiogasAnalyzer(active_mapping)
         result = analyzer.analyze(
-            start_dates=active_tanks,    # 槽別→啟動日
+            start_dates=active_tanks,
             today_str=date_str,
             total_gas=value,
             cumulative_log_path="cumulative_gas_log.json",

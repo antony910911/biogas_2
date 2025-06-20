@@ -16,11 +16,10 @@ except ImportError:
 
 class BiogasAnalyzer:
     def __init__(self, curve_json_dict):
+        # 標準曲線（本地存取）
         self.curves = {}
         for tank, curve_json_path in curve_json_dict.items():
-            if not os.path.exists(curve_json_path):
-                raise FileNotFoundError(f"[曲線檔案不存在] 槽 {tank} 路徑 {curve_json_path} 請檢查 curves/ 目錄或 curve_assignment.json 設定")
-            with open(curve_json_path, 'r', encoding='utf-8') as f:
+            with open(curve_json_path, 'r') as f:
                 self.curves[tank] = json.load(f)
 
     def analyze(self, start_dates, today_str, total_gas, cumulative_log_path=None, is_cumulative=True):
@@ -254,17 +253,3 @@ class BiogasAnalyzer:
             else:
                 cumulative_data = {}
         return self.plot_stacked_estimation_and_cumulative(daily_data, cumulative_data, active_tanks, save_path)
-
-
-# ======= 以下為測試用，不影響實際部署 =======
-if __name__ == "__main__":
-    test_mapping = {
-        "A": "curves/curve_test2.json",
-        "B": "curves/curve_test2.json",
-        "C": "curves/curve_test2.json"
-    }
-    try:
-        analyzer = BiogasAnalyzer(test_mapping)
-        print("✅ 所有曲線檔案都存在，載入成功！")
-    except Exception as e:
-        print(f"❌ 曲線載入失敗：{e}")

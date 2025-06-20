@@ -198,11 +198,15 @@ def handle_today_gas_command(value_str, date_str=None):
         if date_str is None:
             date_str = str(date.today())
 
+        # 1. 讀「user_config」→ 取得 active_tanks
         user_config = load_json_from_github("user_config.json")
         active_tanks = {tank: conf["start_date"] for tank, conf in user_config.items() if conf.get("run", False)}
+
+        # 2. 讀「curve_assignment」→ 取得 active_mapping
         full_mapping = load_json_from_github("curve_assignment.json")
         active_mapping = {k: full_mapping[k] for k in active_tanks if k in full_mapping}
 
+        # 3. BiogasAnalyzer 必須用 active_mapping
         analyzer = BiogasAnalyzer(active_mapping)
         result = analyzer.analyze(
             start_dates=active_tanks,
@@ -211,23 +215,12 @@ def handle_today_gas_command(value_str, date_str=None):
             cumulative_log_path="cumulative_gas_log.json",
             is_cumulative=True
         )
-
-        # ✨ 保證是 list 格式 ✨
-        if isinstance(result, dict):
-            items = []
-            for tank, v in result.items():
-                item = dict(Tank=tank, **v)
-                items.append(item)
-        elif isinstance(result, list):
-            items = result
-        else:
-            raise Exception("analyze 回傳不明型態")
-
         history = load_json_from_github("daily_result_log.json")
-        history[date_str] = items
+        history[date_str] = result
         save_json_to_github("daily_result_log.json", history, f"記錄 {date_str} 產氣量")
+        # 👇👇👇 這行修正，補齊 log_path 參數
         analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, value)
-        analyzer.plot_daily_distribution(items, date_str)
+        analyzer.plot_daily_distribution(result, date_str)
         analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", active_tanks)
         imgs = [
             ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{date_str}_daily_distribution.png", preview_image_url=f"{PHOTO_BASE_URL}/{date_str}_daily_distribution.png"),
@@ -318,6 +311,7 @@ def handle_batch_gas_input_command(msg):
     updated_dates = []
     last_date = None
 
+    # 讀兩份設定只讀一次，效率最佳化
     user_config = load_json_from_github("user_config.json")
     full_mapping = load_json_from_github("curve_assignment.json")
 
@@ -326,6 +320,7 @@ def handle_batch_gas_input_command(msg):
             try:
                 date_str, val = line.strip().split()
                 val = float(val)
+                # 每次都即時抓最新的「目前運轉中的槽」與對應啟動日
                 active_tanks = {tank: conf["start_date"] for tank, conf in user_config.items() if conf.get("run", False)}
                 active_mapping = {k: full_mapping[k] for k in active_tanks if k in full_mapping}
 
@@ -337,23 +332,11 @@ def handle_batch_gas_input_command(msg):
                     cumulative_log_path="cumulative_gas_log.json",
                     is_cumulative=True
                 )
-
-                # --- ✨重點：強制包成 list✨ ---
-                if isinstance(result, dict):
-                    items = []
-                    for tank, v in result.items():
-                        item = dict(Tank=tank, **v)
-                        items.append(item)
-                elif isinstance(result, list):
-                    items = result
-                else:
-                    raise Exception("analyze 回傳不明型態")
-
-                history[date_str] = items
-                analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, val)
+                history[date_str] = result
+                analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, val)  # <<==== 這行修正
                 last_date = date_str
-                last_active_tanks = active_tanks
-                last_analyzer = analyzer
+                last_active_tanks = active_tanks    # <<==== 記住這個
+                last_analyzer = analyzer            # <<==== 記住這個
                 updated_dates.append(f"{date_str} ✔ {val} m³")
             except Exception as e:
                 updated_dates.append(f"{line.strip()} ❌ 格式錯誤 ({e})")
@@ -371,7 +354,6 @@ def handle_batch_gas_input_command(msg):
         return [TextSendMessage(text="\n".join(updated_dates))] + imgs
     else:
         return [TextSendMessage(text="\n".join(updated_dates))]
-
 
 
 

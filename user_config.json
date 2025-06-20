@@ -1,6 +1,6 @@
 {
   "A": {
-    "start_date": "2025-05-29",
+    "start_date": "2025-06-20",
     "lock": true,
     "run": true
   },
@@ -10,7 +10,7 @@
     "run": false
   },
   "C": {
-    "start_date": "2025-05-14",
+    "start_date": "2025-06-20",
     "lock": true,
     "run": true
   }

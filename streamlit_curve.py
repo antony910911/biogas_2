@@ -9,11 +9,7 @@ import json
 import os
 from datetime import date
 from biogas_2 import BiogasAnalyzer
-
 import threading
-
-
-
 from github_utils import GITHUB_TOKEN
 
 if not GITHUB_TOKEN:
@@ -44,6 +40,20 @@ for tank in tanks:
     st.session_state.setdefault(f"lock_{tank.lower()}", user_config[tank]["lock"])
     st.session_state.setdefault(f"run_{tank.lower()}", user_config[tank]["run"])
 
+def ensure_curve_local(curve_name):
+    """
+    若本地無此曲線，則自動從 github 下載一份到 curves/ 資料夾
+    """
+    import os, json
+    local_path = f"curves/{curve_name}"
+    if not os.path.exists(local_path):
+        curve_data = load_json_from_github(f"curves/{curve_name}")
+        os.makedirs("curves", exist_ok=True)
+        with open(local_path, "w") as f:
+            json.dump(curve_data, f, indent=2)
+    return local_path
+
+
 
 # === GitHub 儲存工具 ===
 from github_utils import load_json_from_github, save_json_to_github, save_binary_to_github
@@ -69,6 +79,7 @@ def list_curves_on_github(subdir="curves"):
     if resp.status_code == 200:
         files = [item["name"] for item in resp.json() if item["name"].endswith(".json")]
         return files
+    print("list 失敗:", resp.status_code, resp.text)
     return []
 
 
@@ -176,7 +187,9 @@ curve_files = list_curves_on_github()
 
 selected = st.selectbox("選擇查看某條曲線", curve_files)
 if selected:
-    with open(f"{CURVE_DIR}/{selected}") as f:
+    # ↓↓↓ 自動抓取本地檔案，沒有就下載
+    local_path = ensure_curve_local(selected)
+    with open(local_path, "r") as f:
         data = json.load(f)
     st.markdown(f"**名稱**：{data['name']}")
     st.markdown(f"**描述**：{data['description']}")

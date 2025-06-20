@@ -115,7 +115,6 @@ class BiogasAnalyzer:
         plt.close(fig)
         # === 自動推圖到 GitHub ===
         try:
-            from github_utils import push_png_to_github
             remote_name = f"figures/{os.path.basename(save_path)}"
             push_png_to_github(save_path, remote_name, commit_msg="每日累積沼氣量趨勢圖")
         except Exception as e:
@@ -147,7 +146,6 @@ class BiogasAnalyzer:
         plt.close(fig)
             # === 新增：自動推圖到 GitHub
         try:
-            from github_utils import push_png_to_github
             remote_name = f"figures/{date_str}_daily_distribution.png"
             push_png_to_github(save_path, remote_name, commit_msg=f"{date_str} 每日產氣分布圖")
         except Exception as e:
@@ -196,7 +194,6 @@ class BiogasAnalyzer:
         plt.close(fig)
         # === 自動推圖到 GitHub ===
         try:
-            from github_utils import push_png_to_github
             remote_name = f"figures/{os.path.basename(save_path)}"
             push_png_to_github(save_path, remote_name, commit_msg="每日疊加圖")
         except Exception as e:

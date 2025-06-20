@@ -101,3 +101,11 @@ def list_curves_on_github(subdir="curves"):
         return [item["name"] for item in resp.json() if item["name"].endswith(".json")]
     print("list 失敗:", resp.status_code, resp.text)
     return []
+
+def push_png_to_github(local_path, remote_path, commit_msg="Upload figure"):
+    # 讀取本地檔案
+    with open(local_path, "rb") as f:
+        bin_data = f.read()
+    # 呼叫你現有的 save_binary_to_github
+    return save_binary_to_github(remote_path, bin_data, commit_msg)
+

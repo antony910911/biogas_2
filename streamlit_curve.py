@@ -114,18 +114,6 @@ DAILY_RESULT_LOG = "daily_result_log.json"
 ASSIGN_FILE = "curve_assignment.json"
 os.makedirs(CURVE_DIR, exist_ok=True)
 
-# === Webhook Flask app（可留可不留） ===
-app = Flask(__name__)
-
-@app.route("/reset_log", methods=["POST"])
-def reset_log():
-    BiogasAnalyzer({}).reset_cumulative_log(LOG_PATH)
-    return jsonify({"status": "reset done"})
-
-def run_webhook():
-    app.run(port=5678, debug=False, use_reloader=False)
-
-threading.Thread(target=run_webhook, daemon=True).start()
 
 # 預設初始化 session state（防止第一次提交無效）
 def init_state():
@@ -210,20 +198,28 @@ if selected:
     st.pyplot(fig)
 
 # === 區塊 3：指派曲線 ===
-st.header("🧩 指派曲線給各槽")
-col1, col2, col3 = st.columns(3)
-with col1:
-    a_curve = st.selectbox("槽 A 使用的曲線", curve_files, key="curve_a")
-with col2:
-    b_curve = st.selectbox("槽 B 使用的曲線", curve_files, key="curve_b")
-with col3:
-    c_curve = st.selectbox("槽 C 使用的曲線", curve_files, key="curve_c")
+# 取得曲線檔案清單
+curve_files = [f for f in os.listdir(CURVE_DIR) if f.endswith(".json")]
+if not curve_files:
+    st.warning("⚠️ 目前 curves/ 資料夾沒有可用的曲線 json 檔！請先新增。")
+    a_curve = b_curve = c_curve = None
+else:
+    a_curve = st.selectbox("槽 A 使用的曲線", curve_files, index=0, key="curve_a")
+    b_curve = st.selectbox("槽 B 使用的曲線", curve_files, index=0, key="curve_b")
+    c_curve = st.selectbox("槽 C 使用的曲線", curve_files, index=0, key="curve_c")
 
-mapping = {"A": os.path.join(CURVE_DIR, a_curve), "B": os.path.join(CURVE_DIR, b_curve), "C": os.path.join(CURVE_DIR, c_curve)}
-if st.button("💾 儲存槽別指派設定"):
-    # 曲線指派設定也存 github
-    save_json_to_github(ASSIGN_FILE, mapping)
-    st.success("已儲存槽別指派設定！")
+if a_curve and b_curve and c_curve:
+    mapping = {
+        "A": os.path.join(CURVE_DIR, a_curve),
+        "B": os.path.join(CURVE_DIR, b_curve),
+        "C": os.path.join(CURVE_DIR, c_curve)
+    }
+    if st.button("💾 儲存槽別指派設定"):
+        save_json_to_github(ASSIGN_FILE, mapping)
+        st.success("已儲存槽別指派設定！")
+else:
+    st.info("請確認三個槽都已選擇曲線檔案。")
+
 
 # === 區塊 4 :即時產氣分析設定表單（含啟動日鎖定功能） ===
 st.header("📊 即時產氣分析")

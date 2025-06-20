@@ -26,9 +26,19 @@ def load_json_from_github(filename):
     headers = {"Authorization": f"token {GITHUB_TOKEN}"}
     resp = requests.get(url, headers=headers)
     if resp.status_code == 200:
-        content = resp.json()["content"]
-        content = base64.b64decode(content).decode()
-        return json.loads(content)
+        try:
+            content = resp.json()["content"]
+            content = base64.b64decode(content).decode()
+            data = json.loads(content)
+            # ⭐ 防呆：如果不是 dict，直接報警告
+            if not isinstance(data, dict):
+                print(f"[WARNING] {filename} 讀取後型別為 {type(data)}，預期應為 dict，自動回傳空字典")
+                return {}
+            return data
+        except Exception as e:
+            print(f"[WARNING] 讀取 {filename} 時 JSON 格式異常：{e}")
+            return {}
+    print(f"[WARNING] 下載 {filename} 失敗，status: {resp.status_code}")
     return {}
 
 # === 寫 JSON 檔到 GitHub ===

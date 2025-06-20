@@ -184,9 +184,22 @@ def handle_today_gas_command(value_str, date_str=None):
         value = float(value_str)
         if date_str is None:
             date_str = str(date.today())
-        active_tanks = get_active_tanks()
-        analyzer = BiogasAnalyzer(active_tanks)
-        result = analyzer.analyze(active_tanks, date_str, value)
+
+        # 讀 user_config 得到 active_tanks（槽別→啟動日）
+        user_config = load_json_from_github("user_config.json")
+        active_tanks = {tank: conf["start_date"] for tank, conf in user_config.items() if conf.get("run", False)}
+        # 讀 curve_assignment 得到 active_mapping（槽別→曲線路徑）
+        full_mapping = load_json_from_github("curve_assignment.json")
+        active_mapping = {k: full_mapping[k] for k in active_tanks if k in full_mapping}
+
+        analyzer = BiogasAnalyzer(active_mapping)
+        result = analyzer.analyze(
+            start_dates=active_tanks,    # 槽別→啟動日
+            today_str=date_str,
+            total_gas=value,
+            cumulative_log_path="cumulative_gas_log.json",
+            is_cumulative=True
+        )
         history = load_json_from_github("daily_result_log.json")
         history[date_str] = result
         save_json_to_github("daily_result_log.json", history, f"記錄 {date_str} 產氣量")
@@ -201,6 +214,7 @@ def handle_today_gas_command(value_str, date_str=None):
         return [TextSendMessage(text=f"✅ 已記錄 {date_str} 產氣量：{value:.1f} m³")] + imgs
     except Exception as e:
         return [TextSendMessage(text=f"❌ 請輸入正確格式，例如：2025-06-19 720\n({e})")]
+
 
 # === 查詢指定日期 ===
 def handle_query_by_date_command(date_str):
@@ -272,21 +286,33 @@ def handle_ai_summary_command():
             summary += f"槽{i.get('Tank', '')}處於高峰，維持良好\n"
     return TextSendMessage(text=summary)
 
-# === 多日批次輸入（也用 get_active_tanks） ===
 def handle_batch_gas_input_command(msg):
     lines = msg.strip().split("\n")
     history = load_json_from_github("daily_result_log.json")
     updated_dates = []
     last_date = None
 
+    # 讀兩份設定只讀一次，效率最佳化
+    user_config = load_json_from_github("user_config.json")
+    full_mapping = load_json_from_github("curve_assignment.json")
+
     for line in lines:
         if line.strip():
             try:
                 date_str, val = line.strip().split()
                 val = float(val)
-                active_tanks = get_active_tanks()
-                analyzer = BiogasAnalyzer(active_tanks)
-                result = analyzer.analyze(active_tanks, date_str, val)
+                # 每次都即時抓最新的「目前運轉中的槽」與對應啟動日
+                active_tanks = {tank: conf["start_date"] for tank, conf in user_config.items() if conf.get("run", False)}
+                active_mapping = {k: full_mapping[k] for k in active_tanks if k in full_mapping}
+
+                analyzer = BiogasAnalyzer(active_mapping)
+                result = analyzer.analyze(
+                    start_dates=active_tanks,
+                    today_str=date_str,
+                    total_gas=val,
+                    cumulative_log_path="cumulative_gas_log.json",
+                    is_cumulative=True
+                )
                 history[date_str] = result
                 analyzer.update_cumulative_log(date_str, val)
                 last_date = date_str
@@ -297,16 +323,19 @@ def handle_batch_gas_input_command(msg):
     save_json_to_github("daily_result_log.json", history, "批次輸入多日產氣量")
 
     if last_date:
+        # 這裡重新取出上面最後一組 active_mapping/active_tanks
+        analyzer = BiogasAnalyzer(active_mapping)
         analyzer.plot_daily_distribution(history[last_date], last_date)
         analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", active_tanks)
         imgs = [
-            ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/daily_plot_{last_date}.png", preview_image_url=f"{PHOTO_BASE_URL}/daily_plot_{last_date}.png"),
-            ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/stacked_{last_date}.png", preview_image_url=f"{PHOTO_BASE_URL}/stacked_{last_date}.png"),
-            ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/cumulative_plot_{last_date}.png", preview_image_url=f"{PHOTO_BASE_URL}/cumulative_plot_{last_date}.png"),
+            ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{last_date}_daily_distribution.png", preview_image_url=f"{PHOTO_BASE_URL}/{last_date}_daily_distribution.png"),
+            ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{last_date}_stacked.png", preview_image_url=f"{PHOTO_BASE_URL}/{last_date}_stacked.png"),
+            ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{last_date}_cumulative.png", preview_image_url=f"{PHOTO_BASE_URL}/{last_date}_cumulative.png"),
         ]
         return [TextSendMessage(text="\n".join(updated_dates))] + imgs
     else:
-        return [TextSendMessage(text="\n".join(updated_dates))]
+        return [TextSendMessage(text="\n".join(updated_d_]()
+
 
 # === Flask 啟動入口 ===
 if __name__ == "__main__":

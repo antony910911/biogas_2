@@ -12,6 +12,6 @@
   "C": {
     "start_date": "2025-05-14",
     "lock": true,
-    "run": false
+    "run": true
   }
 }

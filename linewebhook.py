@@ -13,7 +13,7 @@ from linebot.models import (
 )
 
 from biogas_2 import BiogasAnalyzer
-from streamlit_curve import load_json_from_github, save_json_to_github
+from github_utils import load_json_from_github, save_json_to_github
 
 # === 初始設定 ===
 load_dotenv()

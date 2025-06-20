@@ -17,9 +17,6 @@ if not GITHUB_TOKEN:
 else:
     print(f"[DEBUG] GITHUB_TOKEN loaded, first 4: {GITHUB_TOKEN[:4]}")
 
-CONFIG_FILE = "user_config.json"
-tanks = ["A", "B", "C"]
-
 # 載入雲端 user_config
 CONFIG_FILE = "user_config.json"
 tanks = ["A", "B", "C"]

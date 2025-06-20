@@ -112,6 +112,12 @@ class BiogasAnalyzer:
         plt.tight_layout()
         plt.savefig(save_path)
         plt.close(fig)
+        try:
+            from github_utils import push_png_to_github
+            remote_name = f"figures/{os.path.basename(save_path)}"
+            push_png_to_github(save_path, remote_name, commit_msg="每日累積沼氣量趨勢圖")
+        except Exception as e:
+            print(f"[WARNING] push_png_to_github 失敗: {e}")
         return save_path
 
     def plot_daily_distribution(self, result: dict, date_str: str, save_path: str = "daily_distribution.png"):
@@ -146,6 +152,13 @@ class BiogasAnalyzer:
         plt.tight_layout()
         plt.savefig(save_path)
         plt.close(fig)
+        # 這一段是重點
+        try:
+            from github_utils import push_png_to_github
+            remote_name = f"figures/{os.path.basename(save_path)}"
+            push_png_to_github(save_path, remote_name, commit_msg=f"{date_str} 每日產氣分布圖")
+        except Exception as e:
+            print(f"[WARNING] push_png_to_github 失敗: {e}")
         return save_path
 
 
@@ -188,6 +201,12 @@ class BiogasAnalyzer:
         plt.tight_layout()
         plt.savefig(save_path)
         plt.close(fig)
+        try:
+            from github_utils import push_png_to_github
+            remote_name = f"figures/{os.path.basename(save_path)}"
+            push_png_to_github(save_path, remote_name, commit_msg="每日疊加圖")
+        except Exception as e:
+            print(f"[WARNING] push_png_to_github 失敗: {e}")
         return save_path
 
 

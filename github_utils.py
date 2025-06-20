@@ -3,6 +3,17 @@ import os
 import base64
 import json
 
+def get_github_token():
+    # 1. 先抓 streamlit secrets
+    try:
+        import streamlit as st
+        token = st.secrets["GITHUB_TOKEN"]
+    except Exception:
+        # 2. 再抓環境變數
+        token = os.environ.get("GITHUB_TOKEN")
+    return token
+
+
 # === 設定區 ===
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")  # 建議設成 Streamlit Cloud secret
 REPO = "antony910911/biogas_2"         # <<== 換成你的 GitHub 使用者名稱
@@ -71,3 +82,12 @@ def save_binary_to_github(filepath, bin_data, commit_msg="Upload image via Strea
     put_resp = requests.put(API_URL, headers=headers, json=body)
     return put_resp.status_code in [200, 201]
 
+
+def list_curves_on_github(subdir="curves"):
+    url = f"{API_URL}/{subdir}?ref={BRANCH}"
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    resp = requests.get(url, headers=headers)
+    if resp.status_code == 200:
+        return [item["name"] for item in resp.json() if item["name"].endswith(".json")]
+    print("list 失敗:", resp.status_code, resp.text)
+    return []

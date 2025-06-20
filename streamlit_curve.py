@@ -12,6 +12,15 @@ from biogas_2 import BiogasAnalyzer
 
 import threading
 
+
+
+from github_utils import GITHUB_TOKEN
+
+if not GITHUB_TOKEN:
+    st.error("🚨 GITHUB_TOKEN 尚未設定，請到 secrets 或環境變數設定！")
+else:
+    print(f"[DEBUG] GITHUB_TOKEN loaded, first 4: {GITHUB_TOKEN[:4]}")
+
 CONFIG_FILE = "user_config.json"
 tanks = ["A", "B", "C"]
 

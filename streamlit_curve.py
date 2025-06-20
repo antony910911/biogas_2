@@ -7,11 +7,10 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import json
 import os
-import numpy as np
 from datetime import date
 from biogas_2 import BiogasAnalyzer
+
 import threading
-import streamlit as st
 
 CONFIG_FILE = "user_config.json"
 tanks = ["A", "B", "C"]
@@ -35,23 +34,6 @@ for tank in tanks:
     st.session_state.setdefault(f"start_{tank.lower()}", user_config[tank]["start_date"])
     st.session_state.setdefault(f"lock_{tank.lower()}", user_config[tank]["lock"])
     st.session_state.setdefault(f"run_{tank.lower()}", user_config[tank]["run"])
-
-
-
-def get_secret(key, default=None):
-    try:
-        import streamlit as st
-        return st.secrets[key]
-    except Exception:
-        return os.environ.get(key, default)
-
-GITHUB_TOKEN = get_secret("GITHUB_TOKEN")
-LINE_CHANNEL_ACCESS_TOKEN = get_secret("LINE_CHANNEL_ACCESS_TOKEN")
-LINE_CHANNEL_SECRET = get_secret("LINE_CHANNEL_SECRET")
-GITHUB_REPO = get_secret("GITHUB_REPO", "antony910911/biogas_2")
-GITHUB_BRANCH = get_secret("GITHUB_BRANCH", "main")
-
-
 
 
 # === GitHub 儲存工具 ===
@@ -111,7 +93,6 @@ LOG_PATH = "cumulative_gas_log.json"
 DAILY_RESULT_LOG = "daily_result_log.json"
 ASSIGN_FILE = "curve_assignment.json"
 os.makedirs(CURVE_DIR, exist_ok=True)
-
 
 
 # 預設初始化 session state（防止第一次提交無效）
@@ -373,31 +354,12 @@ try:
         df_hist = pd.DataFrame(history[selected_day])
         st.dataframe(df_hist, use_container_width=True)
         fig, ax = plt.subplots(figsize=(8, 6))
-        n_bars = len(df_hist)
-        if n_bars == 1:
-            # 只有一槽：居中，條寬 0.4
-            bars = ax.bar([0], df_hist['volume'], color='gray', width=0.2)
-            ax.set_xticks([0])
-            ax.set_xticklabels(df_hist['Tank'])
-            ax.set_xlim(-0.5, 0.5)
-        else:
-            # 多槽：自適應寬度
-            x = np.arange(n_bars)
-            bar_width = min(0.6, 0.8 / n_bars)  # 槽多時自動窄一點
-            bars = ax.bar(x, df_hist['volume'], color='gray', width=bar_width)
-            ax.set_xticks(x)
-            ax.set_xticklabels(df_hist['Tank'])
-
+        bars = ax.bar(df_hist['Tank'], df_hist['volume'], color='gray', width=0.2)
         max_vol = df_hist['volume'].max()
         ax.set_ylim(0, max_vol * 1.20)
         for idx, row in df_hist.iterrows():
-            # 單槽與多槽時 idx 都對應 x 軸正確
-            if n_bars == 1:
-                xpos = 0
-            else:
-                xpos = idx
             ax.text(
-                xpos,
+                idx,
                 row['volume'] + max_vol * 0.02,
                 f"{row['volume']:.1f}",
                 ha='center', va='bottom', fontsize=14, fontweight='bold',
@@ -405,7 +367,7 @@ try:
             )
         ax.set_title(f"{selected_day} 各槽預估產氣量", fontsize=18)
         ax.set_xlabel("槽別", fontsize=14)
-        ax.set_ylabel("產氣量 m³", fontsize=14)
+        ax.set_ylabel("產氣量 Nm³", fontsize=14)
         ax.tick_params(axis='both', labelsize=13)
         plt.tight_layout()
         st.pyplot(fig)

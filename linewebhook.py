@@ -15,6 +15,16 @@ from linebot.models import (
 from biogas_2 import BiogasAnalyzer
 from github_utils import load_json_from_github, save_json_to_github
 
+from github_utils import save_binary_to_github
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+
+font_path = "fonts/NotoSansTC-Regular.ttf"  # 字型檔路徑
+fm.fontManager.addfont(font_path)
+plt.rcParams['font.sans-serif'] = ['Noto Sans TC', 'Microsoft JhengHei', 'sans-serif']
+plt.rcParams['axes.unicode_minus'] = False  # 避免負號亂碼
+
+
 # === 初始設定 ===
 load_dotenv()
 app = Flask(__name__)
@@ -30,6 +40,20 @@ handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
 # === 公用參數 ===
 PHOTO_BASE_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/figures"
+
+
+
+def push_png_to_github(local_path, remote_filename, commit_msg="自動上傳圖檔"):
+    with open(local_path, "rb") as f:
+        img_bytes = f.read()
+    save_binary_to_github(
+        filepath=remote_filename,   # 例如 "figures/2024-06-19_daily_distribution.png"
+        bin_data=img_bytes,
+        commit_msg=commit_msg
+    )
+
+
+
 
 
 # === 工具函數：取得目前運轉中的槽與啟動日（與 Streamlit 完全同步） ===
@@ -214,24 +238,35 @@ def handle_today_gas_command(value_str, date_str=None):
             total_gas=value,
             cumulative_log_path="cumulative_gas_log.json",
             is_cumulative=True
-        )
+        )        # ...（略，前段同你的 code）
+
         history = load_json_from_github("daily_result_log.json")
-        # 強制寫入 Tank 資訊
         history[date_str] = [
             dict({"Tank": tank}, **item) for tank, item in result.items()
         ]
         save_json_to_github("daily_result_log.json", history, f"記錄 {date_str} 產氣量")
 
-        # 👇👇👇 這行修正，補齊 log_path 參數
+        # （A）先寫入累積 log
         analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, value)
-        analyzer.plot_daily_distribution(result, date_str)
-        analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", active_tanks)
+
+
+        # （B）再依序產圖（注意要接住回傳的本地圖檔路徑）   
+        daily_dist_path = analyzer.plot_daily_distribution(result, date_str, save_path=f"{date_str}_daily_distribution.png")
+        stacked_path = analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", active_tanks, save_path=f"{date_str}_stacked.png")
+        cumulative_path = analyzer.run_cumulative_pipeline("cumulative_gas_log.json", date_str, value, active_tanks, save_path=f"{date_str}_cumulative.png")
+
+        # ==== push 到 github，確保雲端即時可用 ====
+        push_png_to_github(daily_dist_path, f"figures/{date_str}_daily_distribution.png", f"{date_str} daily_distribution")
+        push_png_to_github(stacked_path, f"figures/{date_str}_stacked.png", f"{date_str} stacked")
+        push_png_to_github(cumulative_path, f"figures/{date_str}_cumulative.png", f"{date_str} cumulative")
+
         imgs = [
             ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{date_str}_daily_distribution.png", preview_image_url=f"{PHOTO_BASE_URL}/{date_str}_daily_distribution.png"),
             ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{date_str}_stacked.png", preview_image_url=f"{PHOTO_BASE_URL}/{date_str}_stacked.png"),
             ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{date_str}_cumulative.png", preview_image_url=f"{PHOTO_BASE_URL}/{date_str}_cumulative.png"),
         ]
         return [TextSendMessage(text=f"✅ 已記錄 {date_str} 產氣量：{value:.1f} m³")] + imgs
+
     except Exception as e:
         return [TextSendMessage(text=f"❌ 請輸入正確格式，例如：2025-06-19 720\n({e})")]
 
@@ -313,9 +348,8 @@ def handle_batch_gas_input_command(msg):
     lines = msg.strip().split("\n")
     history = load_json_from_github("daily_result_log.json")
     updated_dates = []
-    last_date = None
+    last_analyzer = last_date = last_active_tanks = None
 
-    # 讀兩份設定只讀一次，效率最佳化
     user_config = load_json_from_github("user_config.json")
     full_mapping = load_json_from_github("curve_assignment.json")
 
@@ -324,7 +358,6 @@ def handle_batch_gas_input_command(msg):
             try:
                 date_str, val = line.strip().split()
                 val = float(val)
-                # 每次都即時抓最新的「目前運轉中的槽」與對應啟動日
                 active_tanks = {tank: conf["start_date"] for tank, conf in user_config.items() if conf.get("run", False)}
                 active_mapping = {k: full_mapping[k] for k in active_tanks if k in full_mapping}
 
@@ -339,11 +372,13 @@ def handle_batch_gas_input_command(msg):
                 history[date_str] = [
                     dict({"Tank": tank}, **item) for tank, item in result.items()
                 ]
+                analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, val)
 
-                analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, val)  # <<==== 這行修正
+                # 關鍵：記住最後一筆
+                last_analyzer = analyzer
                 last_date = date_str
-                last_active_tanks = active_tanks    # <<==== 記住這個
-                last_analyzer = analyzer            # <<==== 記住這個
+                last_active_tanks = active_tanks
+
                 updated_dates.append(f"{date_str} ✔ {val} m³")
             except Exception as e:
                 updated_dates.append(f"{line.strip()} ❌ 格式錯誤 ({e})")
@@ -351,8 +386,15 @@ def handle_batch_gas_input_command(msg):
     save_json_to_github("daily_result_log.json", history, "批次輸入多日產氣量")
 
     if last_date:
-        last_analyzer.plot_daily_distribution(history[last_date], last_date)
-        last_analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", last_active_tanks)
+        daily_dist_path = last_analyzer.plot_daily_distribution(history[last_date], last_date)
+        push_png_to_github(daily_dist_path, f"figures/{last_date}_daily_distribution.png", commit_msg=f"{last_date} daily_distribution")
+
+        stacked_path = last_analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", last_active_tanks)
+        push_png_to_github(stacked_path, f"figures/{last_date}_stacked.png", commit_msg=f"{last_date} stacked")
+
+        cumulative_path = last_analyzer.run_cumulative_pipeline("cumulative_gas_log.json", last_date, val, last_active_tanks)
+        push_png_to_github(cumulative_path, f"figures/{last_date}_cumulative.png", commit_msg=f"{last_date} cumulative")
+
         imgs = [
             ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{last_date}_daily_distribution.png", preview_image_url=f"{PHOTO_BASE_URL}/{last_date}_daily_distribution.png"),
             ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{last_date}_stacked.png", preview_image_url=f"{PHOTO_BASE_URL}/{last_date}_stacked.png"),

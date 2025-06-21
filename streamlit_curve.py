@@ -12,6 +12,11 @@ from biogas_2 import BiogasAnalyzer
 import threading
 from github_utils import GITHUB_TOKEN
 
+font_path = "fonts/NotoSansTC-Regular.ttf"  # 字型檔路徑
+fm.fontManager.addfont(font_path)
+plt.rcParams['font.sans-serif'] = ['Noto Sans TC', 'Microsoft JhengHei', 'sans-serif']
+plt.rcParams['axes.unicode_minus'] = False  # 避免負號亂碼
+
 if not GITHUB_TOKEN:
     st.error("🚨 GITHUB_TOKEN 尚未設定，請到 secrets 或環境變數設定！")
 else:

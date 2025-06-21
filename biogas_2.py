@@ -1,10 +1,18 @@
 import json
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.font_manager as fm
 from datetime import datetime, timedelta
 import os
 import pandas as pd
 import numpy as np
+
+
+font_path = "fonts/NotoSansTC-Regular.ttf"  # 字型檔路徑
+fm.fontManager.addfont(font_path)
+plt.rcParams['font.sans-serif'] = ['Noto Sans TC', 'Microsoft JhengHei', 'sans-serif']
+plt.rcParams['axes.unicode_minus'] = False  # 避免負號亂碼
+
 
 # 加入 github_utils：for log 檔案的 load/save
 try:

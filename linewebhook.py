@@ -16,13 +16,7 @@ from biogas_2 import BiogasAnalyzer
 from github_utils import load_json_from_github, save_json_to_github
 
 from github_utils import save_binary_to_github
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
 
-font_path = "fonts/NotoSansTC-Regular.ttf"  # 字型檔路徑
-fm.fontManager.addfont(font_path)
-plt.rcParams['font.sans-serif'] = ['Noto Sans TC', 'Microsoft JhengHei', 'sans-serif']
-plt.rcParams['axes.unicode_minus'] = False  # 避免負號亂碼
 
 
 # === 初始設定 ===

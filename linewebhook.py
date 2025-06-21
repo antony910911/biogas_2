@@ -214,22 +214,18 @@ def handle_today_gas_command(value_str, date_str=None):
             total_gas=value,
             cumulative_log_path="cumulative_gas_log.json",
             is_cumulative=True
-        )        # ...（略，前段同你的 code）
-
+        )
         history = load_json_from_github("daily_result_log.json")
+        # 強制寫入 Tank 資訊
         history[date_str] = [
             dict({"Tank": tank}, **item) for tank, item in result.items()
         ]
         save_json_to_github("daily_result_log.json", history, f"記錄 {date_str} 產氣量")
 
-        # （A）先寫入累積 log
+        # 👇👇👇 這行修正，補齊 log_path 參數
         analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, value)
-
-        # （B）再依序產圖（只要畫一次）
         analyzer.plot_daily_distribution(result, date_str)
         analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", active_tanks)
-        analyzer.run_cumulative_pipeline("cumulative_gas_log.json", date_str, value, active_tanks)
-
         imgs = [
             ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{date_str}_daily_distribution.png", preview_image_url=f"{PHOTO_BASE_URL}/{date_str}_daily_distribution.png"),
             ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{date_str}_stacked.png", preview_image_url=f"{PHOTO_BASE_URL}/{date_str}_stacked.png"),
@@ -319,16 +315,16 @@ def handle_batch_gas_input_command(msg):
     updated_dates = []
     last_date = None
 
+    # 讀兩份設定只讀一次，效率最佳化
     user_config = load_json_from_github("user_config.json")
     full_mapping = load_json_from_github("curve_assignment.json")
-
-    analyzer = None  # 延後定義
 
     for line in lines:
         if line.strip():
             try:
                 date_str, val = line.strip().split()
                 val = float(val)
+                # 每次都即時抓最新的「目前運轉中的槽」與對應啟動日
                 active_tanks = {tank: conf["start_date"] for tank, conf in user_config.items() if conf.get("run", False)}
                 active_mapping = {k: full_mapping[k] for k in active_tanks if k in full_mapping}
 
@@ -343,25 +339,28 @@ def handle_batch_gas_input_command(msg):
                 history[date_str] = [
                     dict({"Tank": tank}, **item) for tank, item in result.items()
                 ]
-                analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, val)
-                analyzer.plot_daily_distribution(result, date_str)
-                analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", active_tanks)
-                analyzer.run_cumulative_pipeline("cumulative_gas_log.json", date_str, val, active_tanks)
+
+                analyzer.update_cumulative_log("cumulative_gas_log.json", date_str, val)  # <<==== 這行修正
                 last_date = date_str
+                last_active_tanks = active_tanks    # <<==== 記住這個
+                last_analyzer = analyzer            # <<==== 記住這個
                 updated_dates.append(f"{date_str} ✔ {val} m³")
             except Exception as e:
                 updated_dates.append(f"{line.strip()} ❌ 格式錯誤 ({e})")
 
     save_json_to_github("daily_result_log.json", history, "批次輸入多日產氣量")
 
-    imgs = []
-    if last_date and analyzer:
+    if last_date:
+        last_analyzer.plot_daily_distribution(history[last_date], last_date)
+        last_analyzer.run_stacked_pipeline("daily_result_log.json", "cumulative_gas_log.json", last_active_tanks)
         imgs = [
             ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{last_date}_daily_distribution.png", preview_image_url=f"{PHOTO_BASE_URL}/{last_date}_daily_distribution.png"),
             ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{last_date}_stacked.png", preview_image_url=f"{PHOTO_BASE_URL}/{last_date}_stacked.png"),
             ImageSendMessage(original_content_url=f"{PHOTO_BASE_URL}/{last_date}_cumulative.png", preview_image_url=f"{PHOTO_BASE_URL}/{last_date}_cumulative.png"),
         ]
-    return [TextSendMessage(text="\n".join(updated_dates))] + imgs
+        return [TextSendMessage(text="\n".join(updated_dates))] + imgs
+    else:
+        return [TextSendMessage(text="\n".join(updated_dates))]
 
 
 

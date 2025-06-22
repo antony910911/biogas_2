@@ -438,22 +438,23 @@ with tab2:
             slots = df_hist['Tank'].tolist()
             volumes = df_hist['volume'].tolist()
 
-            # 單槽情境美化
             if len(slots) == 1:
-                slots = ["", slots[0], ""]
-                volumes = [0, volumes[0], 0]
+                slots = ["", slots[0], ""]         # 前後都插入一個空欄
+                volumes = [0, volumes[1-1], 0]     # 對應插入 0
+                center_idx = 1                     # Bar 置中 index
 
-            fig, ax = plt.subplots(figsize=(8, 6))
-            bars = ax.bar(slots, volumes, color='gray', width=0.3)
-            real_max_vol = max(volumes)
-            ax.set_ylim(0, real_max_vol * 1.25)
-
-            # 只標中間
-            if len(slots) == 3:
-                ax.text(1, volumes[1] + real_max_vol * 0.04, f"{volumes[1]:.1f}", ha='center', va='bottom', fontsize=14, fontweight='bold')
+                fig, ax = plt.subplots(figsize=(8, 6))
+                bars = ax.bar(slots, volumes, color='gray', width=0.3)
+                real_max_vol = volumes[center_idx]
+                ax.set_ylim(0, real_max_vol * 1.25)
+                ax.text(center_idx, real_max_vol + real_max_vol * 0.04, f"{real_max_vol:.1f}", ha='center', va='bottom', fontsize=14, fontweight='bold')
             else:
-                for idx, row in df_hist.iterrows():
-                    ax.text(idx, row['volume'] + real_max_vol * 0.04, f"{row['volume']:.1f}", ha='center', va='bottom', fontsize=14, fontweight='bold')
+                fig, ax = plt.subplots(figsize=(8, 6))
+                bars = ax.bar(slots, volumes, color='gray', width=0.3)
+                real_max_vol = max(volumes)
+                ax.set_ylim(0, real_max_vol * 1.25)
+                for idx, v in enumerate(volumes):
+                    ax.text(idx, v + real_max_vol * 0.04, f"{v:.1f}", ha='center', va='bottom', fontsize=14, fontweight='bold')
 
             ax.set_title(f"{selected_day} 各槽預估產氣量", fontsize=18)
             ax.set_xlabel("槽別", fontsize=14)
@@ -461,6 +462,7 @@ with tab2:
             ax.tick_params(axis='both', labelsize=13)
             plt.tight_layout()
             st.pyplot(fig)
+
 
         else:
             st.info("尚無歷史紀錄。")

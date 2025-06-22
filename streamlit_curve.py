@@ -484,9 +484,9 @@ with tab3:
     P_{{gen}}\\ (\\mathrm{{kW}}) = Q_{{gas}} \\times \\left( \\frac{{CH_4}}{{100}} \\right) \\times LHV_{{CH_4}} \\times \\eta
     $$
 
-    - $Q_{{gas}}$：沼氣產氣量（Nm³/天，若已知每小時流量則用 Nm³/h）
+    - $Q_{{gas}}$：沼氣產氣量（m³/天，若已知每小時流量則用 m³/h）
     - $CH_4$：甲烷濃度（%）
-    - $LHV_{{CH_4}}$：甲烷低位發熱值（9.97 kWh/Nm³）
+    - $LHV_{{CH_4}}$：甲烷低位發熱值（9.97 kWh/m³）
     - $\\eta$：發電機組綜合發電效率（建議 35%，即 0.35）
 
     > ⚡️ **說明：**  
@@ -495,8 +495,6 @@ with tab3:
     > E_{{gen}}\\ (\\mathrm{{kWh}}) = P_{{gen}}\\ (\\mathrm{{kW}}) \\times \\text{{運轉時數}}\\ (h)
     > $$
     """)
-
-
 
     def calc_power_potential(gas_volume, ch4_percent, eff=0.35):
         CH4_LHV = 9.97
@@ -511,15 +509,10 @@ with tab3:
     st.subheader(f"手動新增/修正 {ch4_label} 濃度")
     all_dates = sorted(set(list(daily_log.keys()) + list(ch4_log.keys())), reverse=True)
     input_date = st.selectbox("選擇日期", all_dates, index=0 if all_dates else None)
-    tank_choices = []
-    if input_date in daily_log:
-        tank_choices = [tank.get("Tank") for tank in daily_log[input_date]]
-    else:
-        tank_choices = ["A", "B", "C"]
+    tank_choices = [tank.get("Tank") for tank in daily_log.get(input_date, [])] if input_date in daily_log else ["A", "B", "C"]
     input_tank = st.selectbox("選擇槽別", tank_choices)
     input_ch4 = st.number_input(f"輸入{ch4_label}濃度（%）", min_value=0.0, max_value=100.0, step=0.1,
                                 value=ch4_log.get(input_date, {}).get(input_tank, 0.0))
-
     if st.button(f"儲存/覆寫該日該槽{ch4_label}濃度"):
         ch4_log.setdefault(input_date, {})
         ch4_log[input_date][input_tank] = input_ch4
@@ -537,7 +530,7 @@ with tab3:
             st.success(f"已刪除 {del_date} 的 {ch4_label} 濃度紀錄")
             st.rerun()
 
-    # ===== 主表與自動計算發電潛能、加權平均 =====
+    # ===== 主表與自動計算發電潛能、加權平均、CH4產量 =====
     records = []
     for d in sorted(daily_log.keys()):
         tanks = daily_log[d]
@@ -558,11 +551,12 @@ with tab3:
             else:
                 tank_ch4s.append(f"{tank_name}:--")
         ch4_avg = total_ch4_weighted / total_gas if total_gas > 0 else None
-        # 在所有地方調整
+        ch4_volume = ch4_avg * total_gas / 100 if ch4_avg is not None else None  # 這就是實際甲烷產量（m³）
         records.append({
             "日期": d,
             "產氣量": total_gas,
             f"加權{ch4_label}(%)": ch4_avg,
+            f"{ch4_label}產量(m³)": ch4_volume,
             "發電潛能(kW)": power_total,
             f"各槽{ch4_label}": "; ".join(tank_ch4s)
         })
@@ -580,12 +574,20 @@ with tab3:
         ax2 = ax1.twinx()
         width = 0.25
 
-        ax1.bar(df["日期"], df["發電潛能(kW)"], width=width, color='#68a5d7', alpha=0.8)
-        ax2.plot(df["日期"], df["CH₄產量(Nm³)"], color='g', marker='o', label="CH₄產量(Nm³)")
+        ax1.bar(df["日期"], df["發電潛能(kW)"], width=width, color='#68a5d7', alpha=0.8, label="發電潛能(kW)")
+        # 數值標註（bar）
+        for i, v in enumerate(df["發電潛能(kW)"]):
+            ax1.text(df["日期"].iloc[i], v + 5, f"{v:.1f}", ha='center', va='bottom', fontsize=9, color='#1c3d5a')
+
+        ax2.plot(df["日期"], df[f"{ch4_label}產量(m³)"], color='g', marker='o', label=f"{ch4_label}產量(m³)")
+        # 數值標註（line）
+        for i, v in enumerate(df[f"{ch4_label}產量(m³)"]):
+            if pd.notnull(v):
+                ax2.text(df["日期"].iloc[i], v + 5, f"{v:.1f}", ha='center', va='bottom', fontsize=9, color='g')
 
         ax1.set_ylabel("發電潛能 (kW)", fontsize=13)
-        ax2.set_ylabel("CH₄產量 (Nm³)", fontsize=13, color='g')
-        plt.title(f"日發電潛能、CH₄產量趨勢", fontsize=15)
+        ax2.set_ylabel(f"{ch4_label}產量 (m³)", fontsize=13, color='g')
+        plt.title(f"日發電潛能、{ch4_label}產量趨勢", fontsize=15)
 
         locator = mdates.AutoDateLocator(minticks=5, maxticks=15)
         formatter = mdates.DateFormatter('%Y-%m-%d')
@@ -595,8 +597,6 @@ with tab3:
         ax2.tick_params(axis='y', labelcolor='g')
         fig.tight_layout()
         st.pyplot(fig)
-
-
 
         st.markdown(f"#### 各槽每日{ch4_label}濃度")
         st.dataframe(df[["日期", f"各槽{ch4_label}"]])

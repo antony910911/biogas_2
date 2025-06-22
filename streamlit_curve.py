@@ -629,19 +629,25 @@ with tab3:
     fig3, ax = plt.subplots(figsize=(10, 4))
 
     # 單日產氣量折線
+    ymax = max(df["產氣量"].max(), df["甲烷產量(m³)"].max(), 10)
+    offset_main = ymax * 0.06    # 主線標註偏移
+    offset_ch4  = ymax * 0.06    # 甲烷標註偏移
+
+    # 單日產氣量折線
     ax.plot(df["日期"], df["產氣量"], color='#1c3d5a', marker='o', linewidth=2.5, label="單日產氣量 (m³)")
     for i, v in enumerate(df["產氣量"]):
-        ax.text(df["日期"].iloc[i], v + 3, f"{v:.0f}", ha='center', va='bottom', fontsize=11, color='#1c3d5a', fontweight='bold')
-
+        ax.text(df["日期"].iloc[i], v + offset_main, f"{v:.0f}", ha='center', va='bottom', fontsize=13, color='#1c3d5a', fontweight='bold')
+    
     # 單日甲烷產量折線
     ax.plot(df["日期"], df["甲烷產量(m³)"], color='#bf224a', marker='s', linewidth=2.5, label="單日甲烷產量 (m³)")
     for i, v in enumerate(df["甲烷產量(m³)"]):
         if pd.notnull(v):
-            ax.text(df["日期"].iloc[i], v - 5, f"{v:.0f}", ha='center', va='bottom', fontsize=11, color='#bf224a', fontweight='bold')
+            ax.text(df["日期"].iloc[i], v - offset_ch4, f"{v:.0f}", ha='center', va='top', fontsize=13, color='#bf224a', fontweight='bold')
 
     ax.set_ylabel("氣體體積 (m³)", fontsize=14, fontweight='bold')
     ax.set_xlabel("日期", fontsize=14, fontweight='bold')
-    ymax = max(df["產氣量"].max(), df["甲烷產量(m³)"].max(), 10)
+
+
     ax.set_ylim(0, ymax * 1.15)
     ax.set_title("單日總產氣量與甲烷產量", fontsize=18, fontweight='bold')
 

@@ -469,12 +469,34 @@ with tab3:
 
     st.header(f"⚡️ 沼氣 {ch4_label} 濃度/產氣量/發電潛能管理")
 
+
     import matplotlib.dates as mdates
     # 字型設定
     font_path = "fonts/NotoSansTC-Regular.ttf"
     fm.fontManager.addfont(font_path)
     plt.rcParams['font.sans-serif'] = ['Noto Sans TC', 'Microsoft JhengHei', 'Arial Unicode MS', 'sans-serif']
     plt.rcParams['axes.unicode_minus'] = False
+
+    st.markdown(f"""
+    #### 🔢 發電潛能計算公式
+
+    $$
+    P_{{gen}}\\ (\\mathrm{{kW}}) = Q_{{gas}} \\times \\left( \\frac{{CH_4}}{{100}} \\right) \\times LHV_{{CH_4}} \\times \\eta
+    $$
+
+    - $Q_{{gas}}$：沼氣產氣量（Nm³/天，若已知每小時流量則用 Nm³/h）
+    - $CH_4$：甲烷濃度（%）
+    - $LHV_{{CH_4}}$：甲烷低位發熱值（9.97 kWh/Nm³）
+    - $\\eta$：發電機組綜合發電效率（建議 35%，即 0.35）
+
+    > ⚡️ **說明：**  
+    > 本系統目前計算的是「理論最大發電功率（kW）」，如要轉換為「發電量（kWh）」，請乘以實際發電時數。
+    > $$
+    > E_{{gen}}\\ (\\mathrm{{kWh}}) = P_{{gen}}\\ (\\mathrm{{kW}}) \\times \\text{{運轉時數}}\\ (h)
+    > $$
+    """)
+
+
 
     def calc_power_potential(gas_volume, ch4_percent, eff=0.35):
         CH4_LHV = 9.97
@@ -536,13 +558,15 @@ with tab3:
             else:
                 tank_ch4s.append(f"{tank_name}:--")
         ch4_avg = total_ch4_weighted / total_gas if total_gas > 0 else None
+        # 在所有地方調整
         records.append({
             "日期": d,
             "產氣量": total_gas,
             f"加權{ch4_label}(%)": ch4_avg,
-            "發電潛能(kWh)": power_total,
+            "發電潛能(kW)": power_total,
             f"各槽{ch4_label}": "; ".join(tank_ch4s)
         })
+
     df = pd.DataFrame(records)
 
     if not df.empty:
@@ -557,11 +581,16 @@ with tab3:
         width = 0.25
         ax1.bar(df["日期"], df["發電潛能(kWh)"], width=width, color='#68a5d7', alpha=0.8)
         ax2.plot(df["日期"], df[f"加權{ch4_label}(%)"], color='r', marker='o')
-        ax1.set_ylabel("發電潛能 (kWh)", fontsize=13)
+        ax1.set_ylabel("發電潛能 (kW)", fontsize=13)
         ax2.set_ylabel(f"加權{ch4_label} (%)", fontsize=13, color='r')
         plt.title(f"日發電潛能、加權{ch4_label}濃度趨勢", fontsize=15)
-        ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        # --- 這段是重點 ---
+        locator = mdates.AutoDateLocator(minticks=5, maxticks=15)
+        formatter = mdates.DateFormatter('%Y-%m-%d')
+        ax1.xaxis.set_major_locator(locator)
+        ax1.xaxis.set_major_formatter(formatter)
         plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha="right")
+        # --------------------
         ax2.tick_params(axis='y', labelcolor='r')
         fig.tight_layout()
         st.pyplot(fig)

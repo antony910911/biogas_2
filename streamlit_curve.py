@@ -467,26 +467,55 @@ with tab3:
     st.header("⚡️ 沼氣 CH₄ 濃度/產氣量/發電潛能管理")
 
     import matplotlib.dates as mdates
-
     # 字型設定
     font_path = "fonts/NotoSansTC-Regular.ttf"
     fm.fontManager.addfont(font_path)
     plt.rcParams['font.sans-serif'] = ['Noto Sans TC', 'Microsoft JhengHei', 'sans-serif']
     plt.rcParams['axes.unicode_minus'] = False
-    # 換算函式
+
     def calc_power_potential(gas_volume, ch4_percent, eff=0.35):
         CH4_LHV = 9.97
         ch4_vol = gas_volume * (ch4_percent / 100)
         return round(ch4_vol * CH4_LHV * eff, 2)
 
-    # 讀每日產氣量
+    # 讀取雲端json
     daily_log = load_json_from_github("daily_result_log.json") or {}
     ch4_log = load_json_from_github("ch4_result_log.json") or {}
 
-    # 整理每日總產氣量（所有槽總和）
+    # ===== 手動輸入/修正 CH₄ 濃度 =====
+    st.subheader("手動新增/修正 CH₄ 濃度")
+    all_dates = sorted(set(list(daily_log.keys()) + list(ch4_log.keys())), reverse=True)
+    input_date = st.selectbox("選擇日期", all_dates, index=0 if all_dates else None)
+    tank_choices = []
+    if input_date in daily_log:
+        tank_choices = [tank.get("Tank") for tank in daily_log[input_date]]
+    else:
+        tank_choices = ["A", "B", "C"]
+    input_tank = st.selectbox("選擇槽別", tank_choices)
+    input_ch4 = st.number_input("輸入CH₄濃度（%）", min_value=0.0, max_value=100.0, step=0.1,
+                                value=ch4_log.get(input_date, {}).get(input_tank, 0.0))
+
+    if st.button("儲存/覆寫該日該槽CH₄濃度"):
+        ch4_log.setdefault(input_date, {})
+        ch4_log[input_date][input_tank] = input_ch4
+        save_json_to_github("ch4_result_log.json", ch4_log)
+        st.success(f"已儲存 {input_date} {input_tank} = {input_ch4:.1f}%")
+        st.experimental_rerun()
+
+    # ===== 刪除 CH₄ 紀錄 =====
+    st.subheader("刪除 CH₄ 濃度紀錄")
+    del_date = st.selectbox("選擇欲刪除日期", all_dates, key="del_date")
+    if del_date and st.button(f"刪除 {del_date} 的 CH₄ 紀錄"):
+        if del_date in ch4_log:
+            del ch4_log[del_date]
+            save_json_to_github("ch4_result_log.json", ch4_log)
+            st.success(f"已刪除 {del_date} 的 CH₄ 濃度紀錄")
+            st.experimental_rerun()
+
+    # ===== 主表與自動計算發電潛能、加權平均 =====
     records = []
     for d in sorted(daily_log.keys()):
-        tanks = daily_log[d]   # 每日所有槽
+        tanks = daily_log[d]
         total_gas = 0
         total_ch4_weighted = 0
         power_total = 0
@@ -498,7 +527,6 @@ with tab3:
             total_gas += v
             if ch4 is not None:
                 total_ch4_weighted += v * ch4
-                # 各槽獨立計算發電潛能
                 power = calc_power_potential(v, ch4)
                 power_total += power
                 tank_ch4s.append(f"{tank_name}:{ch4:.1f}%")
@@ -512,25 +540,20 @@ with tab3:
             "發電潛能(kWh)": power_total,
             "各槽CH₄": "; ".join(tank_ch4s)
         })
-        df = pd.DataFrame(records)
+    df = pd.DataFrame(records)
 
     if not df.empty:
         df["日期"] = pd.to_datetime(df["日期"])
         df = df.sort_values("日期")
-
         st.dataframe(df, use_container_width=True)
         st.download_button("下載 Excel", df.to_csv(index=False), file_name="auto_power_potential_history.csv")
 
         # 畫圖
         fig, ax1 = plt.subplots(figsize=(10, 5))
         ax2 = ax1.twinx()
-        width = 0.25  # bar width
-
-        # bar：發電潛能
-        ax1.bar(df["日期"], df["發電潛能(kWh)"], width=width, color='#68a5d7', alpha=0.8, label="發電潛能 (kWh)")
-        # 折線：加權平均CH₄
-        ax2.plot(df["日期"], df["加權CH₄(%)"], color='r', marker='o', label="加權CH₄(%)")
-
+        width = 0.25
+        ax1.bar(df["日期"], df["發電潛能(kWh)"], width=width, color='#68a5d7', alpha=0.8)
+        ax2.plot(df["日期"], df["加權CH₄(%)"], color='r', marker='o')
         ax1.set_ylabel("發電潛能 (kWh)", fontsize=13)
         ax2.set_ylabel("加權CH₄ (%)", fontsize=13, color='r')
         plt.title("日發電潛能、加權CH₄濃度趨勢", fontsize=15)
@@ -540,8 +563,7 @@ with tab3:
         fig.tight_layout()
         st.pyplot(fig)
 
-        # 補充：展示每日各槽CH₄資訊
-        st.markdown("#### 各槽每日CH₄濃度（如有缺漏以 -- 顯示）")
+        st.markdown("#### 各槽每日CH₄濃度")
         st.dataframe(df[["日期", "各槽CH₄"]])
     else:
         st.info("暫無每日產氣資料，請先分析或上傳 daily_result_log。")

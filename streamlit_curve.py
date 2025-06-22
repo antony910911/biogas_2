@@ -475,13 +475,11 @@ with tab3:
     font_path = "fonts/NotoSansTC-Regular.ttf"
     fm.fontManager.addfont(font_path)
     plt.rcParams['font.sans-serif'] = [
-    'DejaVu Sans',
-    'Arial Unicode MS',
+    'Arial Unicode MS',  # 優先放在最前面，有最全的unicode支援
     'Microsoft JhengHei',
     'Noto Sans TC',
     'sans-serif'
 ]
-
 
     plt.rcParams['axes.unicode_minus'] = False
 

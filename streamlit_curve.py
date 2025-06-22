@@ -581,7 +581,7 @@ with tab3:
         # --- 留頭頂空間 ---
         ymax = max(df[f"加權{ch4_label}(%)"].max(), 10)
         ax1.set_ylim(0, ymax * 1.30)  # 自動多預留15%
-        ax2.set_ylim(0, ymax * 1.30)  # 自動多預留15%
+
 
         # --- 數值標註，距離上方有間隔 ---
         bar_offset = ymax * 0.05

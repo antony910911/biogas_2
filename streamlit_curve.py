@@ -606,7 +606,7 @@ with tab3:
         ax2.tick_params(axis='y', labelcolor='r')
         ax1.set_xlabel("日期", fontsize=16, fontweight='bold')
 
-        plt.title(f"加權{ch4_label}與發電潛能趨勢", fontsize=20, fontweight='bold')
+        plt.title(f"加權{ch4_label}佔比與單日發電潛能", fontsize=20, fontweight='bold')
 
         # --- x軸美化 ---
         locator = mdates.AutoDateLocator(minticks=5, maxticks=15)
@@ -623,3 +623,32 @@ with tab3:
         st.dataframe(df[["日期", f"各槽{ch4_label}"]])
     else:
         st.info("暫無每日產氣資料，請先分析或上傳 daily_result_log。")
+
+    st.markdown("### 單日總產氣量 vs. 單日甲烷產量")
+
+    fig3, ax = plt.subplots(figsize=(10, 4))
+
+    # 單日產氣量折線
+    ax.plot(df["日期"], df["產氣量"], color='#1c3d5a', marker='o', linewidth=2.5, label="單日產氣量 (m³)")
+    for i, v in enumerate(df["產氣量"]):
+        ax.text(df["日期"].iloc[i], v + 3, f"{v:.0f}", ha='center', va='bottom', fontsize=11, color='#1c3d5a', fontweight='bold')
+
+    # 單日甲烷產量折線
+    ax.plot(df["日期"], df["甲烷產量(m³)"], color='#4caf50', marker='s', linewidth=2.5, label="單日甲烷產量 (m³)")
+    for i, v in enumerate(df["甲烷產量(m³)"]):
+        if pd.notnull(v):
+            ax.text(df["日期"].iloc[i], v - 5, f"{v:.0f}", ha='center', va='top', fontsize=11, color='#4caf50', fontweight='bold')
+
+    ax.set_ylabel("氣體體積 (m³)", fontsize=14, fontweight='bold')
+    ax.set_xlabel("日期", fontsize=14, fontweight='bold')
+    .set_title("單日總產氣量與甲烷產量", fontsize=18, fontweight='bold')
+
+    locator = mdates.AutoDateLocator(minticks=5, maxticks=15)
+    formatter = mdates.DateFormatter('%Y-%m-%d')
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(formatter)
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right", fontsize=11, fontweight='bold')
+
+    ax.legend(fontsize=13)
+    fig3.tight_layout()
+    st.pyplot(fig3)

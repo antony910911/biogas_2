@@ -643,8 +643,8 @@ with tab3:
     for i, v in enumerate(df["甲烷產量(m³)"]):
         if pd.notnull(v):
             ax.text(
-                df["日期"].iloc[i] - pd.Timedelta(days=0.2),
-                v + offset_ch4 * 1.1,  # 斜上
+                df["日期"].iloc[i] - pd.Timedelta(days=0.2),  # 左移
+                v + offset_ch4,
                 f"{v:.0f}", ha='right', va='bottom', fontsize=13,
                 color='#c2185b', fontweight='bold'
             )

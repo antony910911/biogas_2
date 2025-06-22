@@ -584,15 +584,19 @@ with tab3:
 
 
         # --- 數值標註，距離上方有間隔 ---
-        bar_offset = ymax * 0.05
+        bar_offset = ymax * 0.04
         for i, v in enumerate(df[f"加權{ch4_label}(%)"]):
             ax1.text(df["日期"].iloc[i], v + bar_offset, f"{v:.1f}", ha='center', va='bottom', fontsize=12, color='#0223db', fontweight='bold')
 
-        # === line: 發電潛能 ===
-        ax2.plot(df["日期"], df["發電潛能(kW)"], color='r', marker='o', label="發電潛能(kW)")
-        # 折線數值標註
-        line_offset = (df["發電潛能(kW)"].max() or 1) * 0.03
-        for i, v in enumerate(df["發電潛能(kW)"]):
+        # 折線圖（右側 y 軸資料）
+        y2 = df["發電潛能(kW)"]
+        ymax2 = y2.max() if len(y2) > 0 else 100  # 防呆，避免全空
+        ax2.set_ylim(0, ymax2 * 1.30)  # 預留 15% 頂端空間
+
+        # 你的折線與數值標註
+        ax2.plot(df["日期"], y2, color='r', marker='o', label="發電潛能(kW)")
+        line_offset = ymax2 * 0.04
+        for i, v in enumerate(y2):
             ax2.text(df["日期"].iloc[i], v + line_offset, f"{v:.0f}", ha='center', va='bottom', fontsize=12, color='r', fontweight='bold')
 
         # --- x軸/y軸標題與顏色 ---

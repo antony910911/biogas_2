@@ -634,9 +634,9 @@ with tab3:
     offset_ch4  = ymax * 0.03    # 甲烷標註偏移
 
     # 單日產氣量折線
-    ax.plot(df["日期"], df["產氣量"], color='#1c3d5a', marker='o', linewidth=2.5, label="單日產氣量 (m³)")
+    ax.plot(df["日期"], df["產氣量"], color='#0524f2', marker='o', linewidth=2.5, label="單日產氣量 (m³)")
     for i, v in enumerate(df["產氣量"]):
-        ax.text(df["日期"].iloc[i], v + offset_main, f"{v:.0f}", ha='center', va='bottom', fontsize=13, color='#1c3d5a', fontweight='bold')
+        ax.text(df["日期"].iloc[i], v + offset_main, f"{v:.0f}", ha='center', va='bottom', fontsize=13, color='#0524f2', fontweight='bold')
     
     # 單日甲烷產量折線
     ax.plot(df["日期"], df["甲烷產量(m³)"], color='#bf224a', marker='s', linewidth=2.5, label="單日甲烷產量 (m³)")

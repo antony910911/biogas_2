@@ -585,7 +585,7 @@ with tab3:
         # --- 數值標註，距離上方有間隔 ---
         bar_offset = ymax * 0.03
         for i, v in enumerate(df[f"加權{ch4_label}(%)"]):
-            ax1.text(df["日期"].iloc[i], v + bar_offset, f"{v:.1f}", ha='center', va='bottom', fontsize=13, color='#1c3d5a', fontweight='bold')
+            ax1.text(df["日期"].iloc[i], v + bar_offset, f"{v:.1f}", ha='center', va='bottom', fontsize=13, color='#0223db', fontweight='bold')
 
         # === line: 發電潛能 ===
         ax2.plot(df["日期"], df["發電潛能(kW)"], color='r', marker='o', label="發電潛能(kW)")

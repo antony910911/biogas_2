@@ -634,10 +634,10 @@ with tab3:
         ax.text(df["日期"].iloc[i], v + 3, f"{v:.0f}", ha='center', va='bottom', fontsize=11, color='#1c3d5a', fontweight='bold')
 
     # 單日甲烷產量折線
-    ax.plot(df["日期"], df["甲烷產量(m³)"], color='#4caf50', marker='s', linewidth=2.5, label="單日甲烷產量 (m³)")
+    ax.plot(df["日期"], df["甲烷產量(m³)"], color='#58187a', marker='s', linewidth=2.5, label="單日甲烷產量 (m³)")
     for i, v in enumerate(df["甲烷產量(m³)"]):
         if pd.notnull(v):
-            ax.text(df["日期"].iloc[i], v - 5, f"{v:.0f}", ha='center', va='top', fontsize=11, color='#4caf50', fontweight='bold')
+            ax.text(df["日期"].iloc[i], v - 5, f"{v:.0f}", ha='center', va='right', fontsize=11, color='#58187a', fontweight='bold')
 
     ax.set_ylabel("氣體體積 (m³)", fontsize=14, fontweight='bold')
     ax.set_xlabel("日期", fontsize=14, fontweight='bold')

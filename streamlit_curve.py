@@ -579,21 +579,20 @@ with tab3:
         fig, ax1 = plt.subplots(figsize=(10, 5))
         ax2 = ax1.twinx()
         width = 0.25
-        ax1.bar(df["日期"], df["發電潛能(kWh)"], width=width, color='#68a5d7', alpha=0.8)
+        ax1.bar(df["日期"], df["發電潛能(kW)"], width=width, color='#68a5d7', alpha=0.8)
         ax2.plot(df["日期"], df[f"加權{ch4_label}(%)"], color='r', marker='o')
         ax1.set_ylabel("發電潛能 (kW)", fontsize=13)
         ax2.set_ylabel(f"加權{ch4_label} (%)", fontsize=13, color='r')
         plt.title(f"日發電潛能、加權{ch4_label}濃度趨勢", fontsize=15)
-        # --- 這段是重點 ---
         locator = mdates.AutoDateLocator(minticks=5, maxticks=15)
         formatter = mdates.DateFormatter('%Y-%m-%d')
         ax1.xaxis.set_major_locator(locator)
         ax1.xaxis.set_major_formatter(formatter)
         plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha="right")
-        # --------------------
         ax2.tick_params(axis='y', labelcolor='r')
         fig.tight_layout()
         st.pyplot(fig)
+
 
         st.markdown(f"#### 各槽每日{ch4_label}濃度")
         st.dataframe(df[["日期", f"各槽{ch4_label}"]])

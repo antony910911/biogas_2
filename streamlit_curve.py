@@ -580,7 +580,7 @@ with tab3:
 
         # --- 留頭頂空間 ---
         ymax = max(df[f"加權{ch4_label}(%)"].max(), 10)
-        ax1.set_ylim(0, ymax * 1.20)  # 自動多預留15%
+        ax1.set_ylim(0, ymax * 1.30)  # 自動多預留15%
 
         # --- 數值標註，距離上方有間隔 ---
         bar_offset = ymax * 0.05
@@ -592,7 +592,7 @@ with tab3:
         # 折線數值標註
         line_offset = (df["發電潛能(kW)"].max() or 1) * 0.03
         for i, v in enumerate(df["發電潛能(kW)"]):
-            ax2.text(df["日期"].iloc[i], v + line_offset, f"{v:.0f}", ha='center', va='bottom', fontsize=12, color='r', fontweight='bold')
+            ax2.text(df["日期"].iloc[i], v + line_offset, f"{v:.0f}", ha='center', va='bottom', fontsize=12, color='#030303', fontweight='bold')
 
         # --- x軸/y軸標題與顏色 ---
         ax1.set_ylabel(f"加權{ch4_label} (%)", fontsize=16, color='#0223db', fontweight='bold')

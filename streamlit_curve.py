@@ -641,7 +641,9 @@ with tab3:
 
     ax.set_ylabel("氣體體積 (m³)", fontsize=14, fontweight='bold')
     ax.set_xlabel("日期", fontsize=14, fontweight='bold')
-    .set_title("單日總產氣量與甲烷產量", fontsize=18, fontweight='bold')
+    ymax = max(df["產氣量"].max(), df["甲烷產量(m³)"].max(), 10)
+    ax.set_ylim(0, ymax * 1.15)
+    ax.set_title("單日總產氣量與甲烷產量", fontsize=18, fontweight='bold')
 
     locator = mdates.AutoDateLocator(minticks=5, maxticks=15)
     formatter = mdates.DateFormatter('%Y-%m-%d')

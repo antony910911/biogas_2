@@ -591,13 +591,13 @@ with tab3:
         ax2.plot(df["日期"], df["發電潛能(kW)"], color='r', marker='o', label="發電潛能(kW)")
 
         # --- x軸/y軸標題與顏色 ---
-        ax1.set_ylabel(f"加權{ch4_label} (%)", fontsize=18, color='#1c3d5a', fontweight='bold')
+        ax1.set_ylabel(f"加權{ch4_label} (%)", fontsize=18, color='#0223db', fontweight='bold')
         ax2.set_ylabel("發電潛能 (kW)", fontsize=18, color='r', fontweight='bold')
-        ax1.tick_params(axis='y', labelcolor='#1c3d5a')
+        ax1.tick_params(axis='y', labelcolor='#0223db')
         ax2.tick_params(axis='y', labelcolor='r')
         ax1.set_xlabel("日期", fontsize=18, fontweight='bold')
 
-        plt.title(f"加權{ch4_label}與發電潛能趨勢", fontsize=22, fontweight='bold')
+        plt.title(f"加權{ch4_label}與發電潛能趨勢", fontsize=18, fontweight='bold')
 
         # --- x軸美化 ---
         locator = mdates.AutoDateLocator(minticks=5, maxticks=15)

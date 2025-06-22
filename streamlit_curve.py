@@ -465,7 +465,7 @@ with tab2:
 
 
 with tab3:
-    ch4_label = 'CH₄'  # 請直接複製這個「CH₄」
+    ch4_label = 'CH' + '\u2084'  # 'CH₄'
 
     st.header(f"⚡️ 沼氣 {ch4_label} 濃度/產氣量/發電潛能管理")
 
@@ -474,13 +474,7 @@ with tab3:
     # 字型設定
     font_path = "fonts/NotoSansTC-Regular.ttf"
     fm.fontManager.addfont(font_path)
-    plt.rcParams['font.sans-serif'] = [
-    'Arial Unicode MS',  # 優先放在最前面，有最全的unicode支援
-    'Microsoft JhengHei',
-    'Noto Sans TC',
-    'sans-serif'
-]
-
+    plt.rcParams['font.sans-serif'] = ['Noto Sans TC', 'Microsoft JhengHei', 'Arial Unicode MS', 'sans-serif']
     plt.rcParams['axes.unicode_minus'] = False
 
     st.markdown(f"""

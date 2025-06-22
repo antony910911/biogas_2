@@ -9,6 +9,7 @@ import json
 import os
 from datetime import date
 from biogas_2 import BiogasAnalyzer
+import matplotlib.dates as mdates
 import threading
 from github_utils import GITHUB_TOKEN
 
@@ -464,67 +465,67 @@ with tab2:
 
 with tab3:
     st.header("⚡️ 沼氣 CH₄ 濃度/產氣量/發電潛能管理")
+
+    import matplotlib.dates as mdates
+
+    # 字型設定
+    font_path = "fonts/NotoSansTC-Regular.ttf"
+    fm.fontManager.addfont(font_path)
+    plt.rcParams['font.sans-serif'] = ['Noto Sans TC', 'Microsoft JhengHei', 'sans-serif']
+    plt.rcParams['axes.unicode_minus'] = False
     # 換算函式
     def calc_power_potential(gas_volume, ch4_percent, eff=0.35):
         CH4_LHV = 9.97
         ch4_vol = gas_volume * (ch4_percent / 100)
         return round(ch4_vol * CH4_LHV * eff, 2)
-        
-    # ========== 輸入區 ==========
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        input_date = st.date_input("日期", value=date.today())
-    with col2:
-        gas_volume = st.number_input("日產氣量 (Nm³)", min_value=0.0, step=0.1)
-    with col3:
-        ch4_percent = st.number_input("CH₄ 濃度 (%)", min_value=0.0, max_value=100.0, step=0.1)
 
-    # 儲存
-    if st.button("登錄並自動換算"):
-        ch4_log = load_json_from_github("ch4_result_log.json") or {}
-        power_log = load_json_from_github("power_potential_log.json") or {}
-        d = str(input_date)
-        ch4_log[d] = {"ch4_percent": ch4_percent}
-        power_log[d] = {
-            "gas_volume": gas_volume,
-            "ch4_percent": ch4_percent,
-            "power_potential_kWh": calc_power_potential(gas_volume, ch4_percent)
-        }
-        save_json_to_github("ch4_result_log.json", ch4_log)
-        save_json_to_github("power_potential_log.json", power_log)
-        st.success(f"已記錄 {d}，發電潛能={power_log[d]['power_potential_kWh']} kWh")
-
-    st.markdown("---")
-
-    # ========== 歷史資料區 ==========
+    # 讀每日產氣量
+    daily_log = load_json_from_github("daily_result_log.json") or {}
     ch4_log = load_json_from_github("ch4_result_log.json") or {}
-    power_log = load_json_from_github("power_potential_log.json") or {}
 
-    # 整理合併顯示
-    all_dates = sorted(set(list(ch4_log.keys()) + list(power_log.keys())), reverse=True)
+    # 整理每日總產氣量（所有槽總和）
     records = []
-    for d in all_dates:
-        row = {"日期": d}
-        row["CH₄ (%)"] = ch4_log.get(d, {}).get("ch4_percent", "")
-        row["產氣量"] = power_log.get(d, {}).get("gas_volume", "")
-        row["發電潛能(kWh)"] = power_log.get(d, {}).get("power_potential_kWh", "")
-        records.append(row)
+    for d in sorted(daily_log.keys()):
+        tanks = daily_log[d]
+        total_gas = sum([tank.get("volume", 0) for tank in tanks])
+        ch4_percent = ch4_log.get(d, {}).get("ch4_percent", None)
+        power = calc_power_potential(total_gas, ch4_percent) if ch4_percent is not None else None
+        records.append({
+            "日期": d,
+            "產氣量": total_gas,
+            "CH₄(%)": ch4_percent,
+            "發電潛能(kWh)": power
+        })
     df = pd.DataFrame(records)
-    st.dataframe(df, use_container_width=True)
-    st.download_button("下載 Excel", df.to_csv(index=False), file_name="power_potential_history.csv")
+    if not df.empty:
+        df["日期"] = pd.to_datetime(df["日期"])
+        df = df.sort_values("日期")
 
-    # ========== 圖表 ==========
-    st.markdown("#### 日發電潛能趨勢")
-    if not df.empty and df["發電潛能(kWh)"].notnull().any():
-        dfp = df.copy()
-        dfp["日期"] = pd.to_datetime(dfp["日期"])
-        dfp = dfp.sort_values("日期")
-        dfp = dfp.replace("", 0)
-        fig, ax1 = plt.subplots()
+        st.dataframe(df, use_container_width=True)
+        st.download_button("下載 Excel", df.to_csv(index=False), file_name="auto_power_potential_history.csv")
+
+        # 畫圖
+        fig, ax1 = plt.subplots(figsize=(10, 5))
         ax2 = ax1.twinx()
-        ax1.bar(dfp["日期"], dfp["發電潛能(kWh)"], alpha=0.7, label="發電潛能", width=0.8)
-        ax2.plot(dfp["日期"], dfp["CH₄ (%)"], color='r', marker='o', label="CH₄(%)")
-        ax1.set_ylabel("發電潛能 (kWh)")
-        ax2.set_ylabel("CH₄ (%)")
-        plt.title("日發電潛能、CH₄濃度")
+        width = 0.25  # bar width
+
+        # bar：發電潛能
+        bar = ax1.bar(df["日期"], df["發電潛能(kWh)"], width=width, color='#68a5d7', alpha=0.8, label="發電潛能 (kWh)")
+        # 折線：CH₄
+        ax2.plot(df["日期"], df["CH₄(%)"], color='r', marker='o', label="CH₄(%)")
+
+        # y軸標籤
+        ax1.set_ylabel("發電潛能 (kWh)", fontsize=13)
+        ax2.set_ylabel("CH₄ (%)", fontsize=13, color='r')
+        # 標題
+        plt.title("日發電潛能、CH₄濃度趨勢", fontsize=15)
+        # x軸格式
+        ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha="right")
+        # y軸格式
+        ax2.tick_params(axis='y', labelcolor='r')
+        # 美化
+        fig.tight_layout()
         st.pyplot(fig)
+    else:
+        st.info("暫無每日產氣資料，請先分析或上傳 daily_result_log。")

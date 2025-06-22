@@ -630,8 +630,8 @@ with tab3:
 
     # 單日產氣量折線
     ymax = max(df["產氣量"].max(), df["甲烷產量(m³)"].max(), 10)
-    offset_main = ymax * 0.04    # 主線標註偏移
-    offset_ch4  = ymax * 0.04    # 甲烷標註偏移
+    offset_main = ymax * 0.03    # 主線標註偏移
+    offset_ch4  = ymax * 0.03    # 甲烷標註偏移
 
     # 單日產氣量折線
     ax.plot(df["日期"], df["產氣量"], color='#1c3d5a', marker='o', linewidth=2.5, label="單日產氣量 (m³)")
@@ -643,7 +643,7 @@ with tab3:
     for i, v in enumerate(df["甲烷產量(m³)"]):
         if pd.notnull(v):
             ax.text(
-                df["日期"].iloc[i] - pd.Timedelta(days=0.2),  # 左移
+                df["日期"].iloc[i] - pd.Timedelta(days=0.1),  # 左移
                 v + offset_ch4,
                 f"{v:.0f}", ha='right', va='bottom', fontsize=13,
                 color='#c2185b', fontweight='bold'

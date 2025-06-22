@@ -597,7 +597,7 @@ with tab3:
         ax2.plot(df["日期"], y2, color='r', marker='o', label="發電潛能(kW)")
         line_offset = ymax2 * 0.04
         for i, v in enumerate(y2):
-            ax2.text(df["日期"].iloc[i], v + line_offset, f"{v:.1f}", ha='center', va='bottom', fontsize=12, color='r', fontweight='bold')
+            ax2.text(df["日期"].iloc[i], v + line_offset, f"{v:.0f}", ha='center', va='bottom', fontsize=12, color='r', fontweight='bold')
 
         # --- x軸/y軸標題與顏色 ---
         ax1.set_ylabel(f"加權{ch4_label} (%)", fontsize=16, color='#0223db', fontweight='bold')
@@ -631,13 +631,13 @@ with tab3:
     # 單日產氣量折線
     ax.plot(df["日期"], df["產氣量"], color='#1c3d5a', marker='o', linewidth=2.5, label="單日產氣量 (m³)")
     for i, v in enumerate(df["產氣量"]):
-        ax.text(df["日期"].iloc[i], v + 3, f"{v:.1f}", ha='center', va='bottom', fontsize=11, color='#1c3d5a', fontweight='bold')
+        ax.text(df["日期"].iloc[i], v + 3, f"{v:.0f}", ha='center', va='bottom', fontsize=11, color='#1c3d5a', fontweight='bold')
 
     # 單日甲烷產量折線
     ax.plot(df["日期"], df["甲烷產量(m³)"], color='#bf224a', marker='s', linewidth=2.5, label="單日甲烷產量 (m³)")
     for i, v in enumerate(df["甲烷產量(m³)"]):
         if pd.notnull(v):
-            ax.text(df["日期"].iloc[i], v - 5, f"{v:.1f}", ha='center', va='bottom', fontsize=11, color='#bf224a', fontweight='bold')
+            ax.text(df["日期"].iloc[i], v - 5, f"{v:.0f}", ha='center', va='bottom', fontsize=11, color='#bf224a', fontweight='bold')
 
     ax.set_ylabel("氣體體積 (m³)", fontsize=14, fontweight='bold')
     ax.set_xlabel("日期", fontsize=14, fontweight='bold')

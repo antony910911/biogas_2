@@ -596,8 +596,10 @@ with tab3:
         # 你的折線與數值標註
         ax2.plot(df["日期"], y2, color='r', marker='o', label="發電潛能(kW)")
         line_offset = ymax2 * 0.04
-        for i, v in enumerate(y2):
-            ax2.text(df["日期"].iloc[i], v + line_offset, f"{v:.0f}", ha='center', va='bottom', fontsize=12, color='r', fontweight='bold')
+        for i, v in enumerate(df["甲烷產量(m³)"]):
+            if pd.notnull(v):
+                ax.text(df["日期"].iloc[i], v + offset_ch4, f"{v:.0f}", ha='center', va='bottom', fontsize=13, color='#c2185b', fontweight='bold')
+
 
         # --- x軸/y軸標題與顏色 ---
         ax1.set_ylabel(f"加權{ch4_label} (%)", fontsize=16, color='#0223db', fontweight='bold')

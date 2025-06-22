@@ -42,7 +42,7 @@ for tank in tanks:
     st.session_state.setdefault(f"lock_{tank.lower()}", user_config[tank]["lock"])
     st.session_state.setdefault(f"run_{tank.lower()}", user_config[tank]["run"])
 
-tab1, tab2 = st.tabs(["沼氣紀錄", "⚡️發電潛能紀錄"])
+tab1, tab2, tab3 = st.tabs(["app說明頁","沼氣紀錄", "⚡️發電潛能紀錄"])
 
 
 def ensure_curve_local(curve_name):
@@ -110,7 +110,28 @@ try:
 except Exception as e:
     plt.rcParams['font.sans-serif'] = ['sans-serif']
 
-st.title("🧪 沼氣紀錄管理中心")
+with tab1:
+
+    st.title("🧪 沼氣管理平台 ℹ️ 使用說明")
+    st.markdown("""
+    ### 沼氣管理平台操作說明
+
+    **功能介紹：**
+    - `📈 產氣紀錄/分析`：管理與查詢每日各槽產氣數據，分析趨勢。
+    - `⚡️ 發電潛能紀錄`：登錄甲烷濃度、產氣量，計算當日發電潛能與趨勢。
+    - `ℹ️ 使用說明`：本頁即為功能操作說明、FAQ與技術支援窗口。
+
+    **常見操作：**
+    1. 點選「產氣紀錄/分析」進行數據登錄與查詢。
+    2. 若要計算發電潛能，請切換至「發電潛能紀錄」頁。
+    3. 系統所有數據皆自動存入 GitHub 雲端，不怕遺失。
+    
+    **遇到問題？**
+    - 請確認 GitHub Token 設定正確，必要時重新整理頁面。
+
+    ---
+    """
+    )
 
 # === 路徑設定（僅曲線存在本地）===
 CURVE_DIR = "curves"
@@ -141,7 +162,7 @@ def init_state():
             st.session_state[k] = v
 
 init_state()
-with tab1:
+with tab2:
     # === 區塊 1：上傳標準曲線 ===
     st.header("📤 上傳標準曲線")
     file = st.file_uploader("請上傳 CSV 或 JSON 曲線檔", type=["csv", "json"])
@@ -437,17 +458,18 @@ with tab1:
         st.info(f"歷史紀錄讀取失敗：{e}")
 
 
-# 換算函式
-def calc_power_potential(gas_volume, ch4_percent, eff=0.35):
-    CH4_LHV = 9.97
-    ch4_vol = gas_volume * (ch4_percent / 100)
-    return round(ch4_vol * CH4_LHV * eff, 2)
 
 
 
-with tab2:
+
+with tab3:
     st.header("⚡️ 沼氣 CH₄ 濃度/產氣量/發電潛能管理")
-
+    # 換算函式
+    def calc_power_potential(gas_volume, ch4_percent, eff=0.35):
+        CH4_LHV = 9.97
+        ch4_vol = gas_volume * (ch4_percent / 100)
+        return round(ch4_vol * CH4_LHV * eff, 2)
+        
     # ========== 輸入區 ==========
     col1, col2, col3 = st.columns(3)
     with col1:

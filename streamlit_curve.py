@@ -435,25 +435,33 @@ with tab2:
                 else:
                     st.warning("該日期已不在歷史紀錄中。")
             df_hist = pd.DataFrame(history[selected_day])
-            st.dataframe(df_hist, use_container_width=True)
+            slots = df_hist['Tank'].tolist()
+            volumes = df_hist['volume'].tolist()
+
+            # 單槽情境美化
+            if len(slots) == 1:
+                slots = ["", slots[0], ""]
+                volumes = [0, volumes[0], 0]
+
             fig, ax = plt.subplots(figsize=(8, 6))
-            bars = ax.bar(df_hist['Tank'], df_hist['volume'], color='gray', width=0.2)
-            max_vol = df_hist['volume'].max()
-            ax.set_ylim(0, max_vol * 1.20)
-            for idx, row in df_hist.iterrows():
-                ax.text(
-                    idx,
-                    row['volume'] + max_vol * 0.02,
-                    f"{row['volume']:.1f}",
-                    ha='center', va='bottom', fontsize=14, fontweight='bold',
-                    clip_on=False
-                )
+            bars = ax.bar(slots, volumes, color='gray', width=0.3)
+            real_max_vol = max(volumes)
+            ax.set_ylim(0, real_max_vol * 1.25)
+
+            # 只標中間
+            if len(slots) == 3:
+                ax.text(1, volumes[1] + real_max_vol * 0.04, f"{volumes[1]:.1f}", ha='center', va='bottom', fontsize=14, fontweight='bold')
+            else:
+                for idx, row in df_hist.iterrows():
+                    ax.text(idx, row['volume'] + real_max_vol * 0.04, f"{row['volume']:.1f}", ha='center', va='bottom', fontsize=14, fontweight='bold')
+
             ax.set_title(f"{selected_day} 各槽預估產氣量", fontsize=18)
             ax.set_xlabel("槽別", fontsize=14)
             ax.set_ylabel("產氣量 Nm³", fontsize=14)
             ax.tick_params(axis='both', labelsize=13)
             plt.tight_layout()
             st.pyplot(fig)
+
         else:
             st.info("尚無歷史紀錄。")
     except Exception as e:
@@ -630,8 +638,8 @@ with tab3:
 
     # 單日產氣量折線
     ymax = max(df["產氣量"].max(), df["甲烷產量(m³)"].max(), 10)
-    offset_main = ymax * 0.03    # 主線標註偏移
-    offset_ch4  = ymax * 0.03    # 甲烷標註偏移
+    offset_main = ymax * 0.04    # 主線標註偏移
+    offset_ch4  = ymax * 0.04    # 甲烷標註偏移
 
     # 單日產氣量折線
     ax.plot(df["日期"], df["產氣量"], color='#0524f2', marker='o', linewidth=2.5, label="單日產氣量 (m³)")

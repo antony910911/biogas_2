@@ -586,7 +586,7 @@ with tab3:
         # --- 數值標註，距離上方有間隔 ---
         bar_offset = ymax * 0.04
         for i, v in enumerate(df[f"加權{ch4_label}(%)"]):
-            ax1.text(df["日期"].iloc[i], v + bar_offset, f"{v:.1f}", ha='center', va='bottom', fontsize=12, color='#64d6ed', fontweight='bold')
+            ax1.text(df["日期"].iloc[i], v + bar_offset, f"{v:.1f}", ha='center', va='bottom', fontsize=12, color='#030303', fontweight='bold')
 
         # 折線圖（右側 y 軸資料）
         y2 = df["發電潛能(kW)"]
@@ -600,9 +600,9 @@ with tab3:
             ax2.text(df["日期"].iloc[i], v + line_offset, f"{v:.0f}", ha='center', va='bottom', fontsize=12, color='r', fontweight='bold')
 
         # --- x軸/y軸標題與顏色 ---
-        ax1.set_ylabel(f"加權{ch4_label} (%)", fontsize=16, color='#64d6ed', fontweight='bold')
+        ax1.set_ylabel(f"加權{ch4_label} (%)", fontsize=16, color='#030303', fontweight='bold')
         ax2.set_ylabel("發電潛能 (kW)", fontsize=16, color='r', fontweight='bold')
-        ax1.tick_params(axis='y', labelcolor='#64d6ed')
+        ax1.tick_params(axis='y', labelcolor='#030303')
         ax2.tick_params(axis='y', labelcolor='r')
         ax1.set_xlabel("日期", fontsize=16, fontweight='bold')
 

@@ -580,10 +580,10 @@ with tab3:
 
         # --- 留頭頂空間 ---
         ymax = max(df[f"加權{ch4_label}(%)"].max(), 10)
-        ax1.set_ylim(0, ymax * 1.15)  # 自動多預留15%
+        ax1.set_ylim(0, ymax * 1.20)  # 自動多預留15%
 
         # --- 數值標註，距離上方有間隔 ---
-        bar_offset = ymax * 0.03
+        bar_offset = ymax * 0.05
         for i, v in enumerate(df[f"加權{ch4_label}(%)"]):
             ax1.text(df["日期"].iloc[i], v + bar_offset, f"{v:.1f}", ha='center', va='bottom', fontsize=13, color='#0223db', fontweight='bold')
 
@@ -604,7 +604,7 @@ with tab3:
         formatter = mdates.DateFormatter('%Y-%m-%d')
         ax1.xaxis.set_major_locator(locator)
         ax1.xaxis.set_major_formatter(formatter)
-        plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha="right", fontsize=14, fontweight='bold')
+        plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha="right", fontsize=12, fontweight='bold')
 
         fig.tight_layout()
         st.pyplot(fig)

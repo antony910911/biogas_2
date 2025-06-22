@@ -486,17 +486,34 @@ with tab3:
     # 整理每日總產氣量（所有槽總和）
     records = []
     for d in sorted(daily_log.keys()):
-        tanks = daily_log[d]
-        total_gas = sum([tank.get("volume", 0) for tank in tanks])
-        ch4_percent = ch4_log.get(d, {}).get("ch4_percent", None)
-        power = calc_power_potential(total_gas, ch4_percent) if ch4_percent is not None else None
+        tanks = daily_log[d]   # 每日所有槽
+        total_gas = 0
+        total_ch4_weighted = 0
+        power_total = 0
+        tank_ch4s = []
+        for tank in tanks:
+            tank_name = tank.get("Tank")
+            v = tank.get("volume", 0)
+            ch4 = ch4_log.get(d, {}).get(tank_name, None)
+            total_gas += v
+            if ch4 is not None:
+                total_ch4_weighted += v * ch4
+                # 各槽獨立計算發電潛能
+                power = calc_power_potential(v, ch4)
+                power_total += power
+                tank_ch4s.append(f"{tank_name}:{ch4:.1f}%")
+            else:
+                tank_ch4s.append(f"{tank_name}:--")
+        ch4_avg = total_ch4_weighted / total_gas if total_gas > 0 else None
         records.append({
             "日期": d,
             "產氣量": total_gas,
-            "CH₄(%)": ch4_percent,
-            "發電潛能(kWh)": power
+            "加權CH₄(%)": ch4_avg,
+            "發電潛能(kWh)": power_total,
+            "各槽CH₄": "; ".join(tank_ch4s)
         })
-    df = pd.DataFrame(records)
+        df = pd.DataFrame(records)
+
     if not df.empty:
         df["日期"] = pd.to_datetime(df["日期"])
         df = df.sort_values("日期")
@@ -510,22 +527,21 @@ with tab3:
         width = 0.25  # bar width
 
         # bar：發電潛能
-        bar = ax1.bar(df["日期"], df["發電潛能(kWh)"], width=width, color='#68a5d7', alpha=0.8, label="發電潛能 (kWh)")
-        # 折線：CH₄
-        ax2.plot(df["日期"], df["CH₄(%)"], color='r', marker='o', label="CH₄(%)")
+        ax1.bar(df["日期"], df["發電潛能(kWh)"], width=width, color='#68a5d7', alpha=0.8, label="發電潛能 (kWh)")
+        # 折線：加權平均CH₄
+        ax2.plot(df["日期"], df["加權CH₄(%)"], color='r', marker='o', label="加權CH₄(%)")
 
-        # y軸標籤
         ax1.set_ylabel("發電潛能 (kWh)", fontsize=13)
-        ax2.set_ylabel("CH₄ (%)", fontsize=13, color='r')
-        # 標題
-        plt.title("日發電潛能、CH₄濃度趨勢", fontsize=15)
-        # x軸格式
+        ax2.set_ylabel("加權CH₄ (%)", fontsize=13, color='r')
+        plt.title("日發電潛能、加權CH₄濃度趨勢", fontsize=15)
         ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
         plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha="right")
-        # y軸格式
         ax2.tick_params(axis='y', labelcolor='r')
-        # 美化
         fig.tight_layout()
         st.pyplot(fig)
+
+        # 補充：展示每日各槽CH₄資訊
+        st.markdown("#### 各槽每日CH₄濃度（如有缺漏以 -- 顯示）")
+        st.dataframe(df[["日期", "各槽CH₄"]])
     else:
         st.info("暫無每日產氣資料，請先分析或上傳 daily_result_log。")

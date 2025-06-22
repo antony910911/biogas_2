@@ -642,7 +642,7 @@ with tab3:
     ax.plot(df["日期"], df["甲烷產量(m³)"], color='#bf224a', marker='s', linewidth=2.5, label="單日甲烷產量 (m³)")
     for i, v in enumerate(df["甲烷產量(m³)"]):
         if pd.notnull(v):
-            ax.text(df["日期"].iloc[i], v - offset_ch4, f"{v:.0f}", ha='center', va='top', fontsize=13, color='#bf224a', fontweight='bold')
+            ax.text(df["日期"].iloc[i], v + offset_ch4, f"{v:.0f}", ha='center', va='bottom', fontsize=13, color='#c2185b', fontweight='bold')
 
     ax.set_ylabel("氣體體積 (m³)", fontsize=14, fontweight='bold')
     ax.set_xlabel("日期", fontsize=14, fontweight='bold')

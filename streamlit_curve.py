@@ -465,7 +465,7 @@ with tab2:
 
 
 with tab3:
-    ch4_label = 'CH' + '\u2084'  # 'CH₄'
+    ch4_label = "甲烷"  # 'CH₄'
 
     st.header(f"⚡️ 沼氣 {ch4_label} 濃度/產氣量/發電潛能管理")
 
@@ -572,31 +572,33 @@ with tab3:
         # 畫圖
         fig, ax1 = plt.subplots(figsize=(10, 5))
         ax2 = ax1.twinx()
-        width = 0.25
+        width = 0.3
 
-        ax1.bar(df["日期"], df["發電潛能(kW)"], width=width, color='#68a5d7', alpha=0.8, label="發電潛能(kW)")
-        # 數值標註（bar）
-        for i, v in enumerate(df["發電潛能(kW)"]):
-            ax1.text(df["日期"].iloc[i], v + 5, f"{v:.1f}", ha='center', va='bottom', fontsize=9, color='#1c3d5a')
+        # Bar：加權CH₄
+        bars = ax1.bar(df["日期"], df[f"加權{ch4_label}(%)"], width=width, color='#68a5d7', alpha=0.8, label=f"加權{ch4_label}(%)")
 
-        ax2.plot(df["日期"], df[f"{ch4_label}產量(m³)"], color='g', marker='o', label=f"{ch4_label}產量(m³)")
-        # 數值標註（line）
-        for i, v in enumerate(df[f"{ch4_label}產量(m³)"]):
-            if pd.notnull(v):
-                ax2.text(df["日期"].iloc[i], v + 5, f"{v:.1f}", ha='center', va='bottom', fontsize=9, color='g')
+        # Line：發電潛能
+        ax2.plot(df["日期"], df["發電潛能(kW)"], color='r', marker='o', label="發電潛能(kW)")
 
-        ax1.set_ylabel("發電潛能 (kW)", fontsize=13)
-        ax2.set_ylabel(f"{ch4_label}產量 (m³)", fontsize=13, color='g')
-        plt.title(f"日發電潛能、{ch4_label}產量趨勢", fontsize=15)
+        # --- 數值標註（加權CH₄） ---
+        bar_offset = (df[f"加權{ch4_label}(%)"].max() or 1) * 0.03  # 上方多 3% 高度
+        for i, v in enumerate(df[f"加權{ch4_label}(%)"]):
+            ax1.text(df["日期"].iloc[i], v + bar_offset, f"{v:.1f}", ha='center', va='bottom', fontsize=10, color='#1c3d5a')
+
+        ax1.set_ylabel(f"加權{ch4_label} (%)", fontsize=13, color='#68a5d7')
+        ax2.set_ylabel("發電潛能 (kW)", fontsize=13, color='r')
+        plt.title(f"加權{ch4_label}與發電潛能趨勢", fontsize=15)
 
         locator = mdates.AutoDateLocator(minticks=5, maxticks=15)
         formatter = mdates.DateFormatter('%Y-%m-%d')
         ax1.xaxis.set_major_locator(locator)
         ax1.xaxis.set_major_formatter(formatter)
         plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha="right")
-        ax2.tick_params(axis='y', labelcolor='g')
+        ax2.tick_params(axis='y', labelcolor='r')
+        ax1.tick_params(axis='y', labelcolor='#68a5d7')
         fig.tight_layout()
         st.pyplot(fig)
+
 
         st.markdown(f"#### 各槽每日{ch4_label}濃度")
         st.dataframe(df[["日期", f"各槽{ch4_label}"]])

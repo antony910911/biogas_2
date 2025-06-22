@@ -570,32 +570,42 @@ with tab3:
         st.download_button("下載 Excel", df.to_csv(index=False), file_name="auto_power_potential_history.csv")
 
         # 畫圖
+
         fig, ax1 = plt.subplots(figsize=(10, 5))
         ax2 = ax1.twinx()
         width = 0.3
 
-        # Bar：加權CH₄
+        # === bar: 加權CH₄(%) ===
         bars = ax1.bar(df["日期"], df[f"加權{ch4_label}(%)"], width=width, color='#68a5d7', alpha=0.8, label=f"加權{ch4_label}(%)")
 
-        # Line：發電潛能
+        # --- 留頭頂空間 ---
+        ymax = max(df[f"加權{ch4_label}(%)"].max(), 10)
+        ax1.set_ylim(0, ymax * 1.15)  # 自動多預留15%
+
+        # --- 數值標註，距離上方有間隔 ---
+        bar_offset = ymax * 0.03
+        for i, v in enumerate(df[f"加權{ch4_label}(%)"]):
+            ax1.text(df["日期"].iloc[i], v + bar_offset, f"{v:.1f}", ha='center', va='bottom', fontsize=13, color='#1c3d5a', fontweight='bold')
+
+        # === line: 發電潛能 ===
         ax2.plot(df["日期"], df["發電潛能(kW)"], color='r', marker='o', label="發電潛能(kW)")
 
-        # --- 數值標註（加權CH₄） ---
-        bar_offset = (df[f"加權{ch4_label}(%)"].max() or 1) * 0.03  # 上方多 3% 高度
-        for i, v in enumerate(df[f"加權{ch4_label}(%)"]):
-            ax1.text(df["日期"].iloc[i], v + bar_offset, f"{v:.1f}", ha='center', va='bottom', fontsize=10, color='#1c3d5a')
+        # --- x軸/y軸標題與顏色 ---
+        ax1.set_ylabel(f"加權{ch4_label} (%)", fontsize=18, color='#1c3d5a', fontweight='bold')
+        ax2.set_ylabel("發電潛能 (kW)", fontsize=18, color='r', fontweight='bold')
+        ax1.tick_params(axis='y', labelcolor='#1c3d5a')
+        ax2.tick_params(axis='y', labelcolor='r')
+        ax1.set_xlabel("日期", fontsize=18, fontweight='bold')
 
-        ax1.set_ylabel(f"加權{ch4_label} (%)", fontsize=13, color='#68a5d7')
-        ax2.set_ylabel("發電潛能 (kW)", fontsize=13, color='r')
-        plt.title(f"加權{ch4_label}與發電潛能趨勢", fontsize=15)
+        plt.title(f"加權{ch4_label}與發電潛能趨勢", fontsize=22, fontweight='bold')
 
+        # --- x軸美化 ---
         locator = mdates.AutoDateLocator(minticks=5, maxticks=15)
         formatter = mdates.DateFormatter('%Y-%m-%d')
         ax1.xaxis.set_major_locator(locator)
         ax1.xaxis.set_major_formatter(formatter)
-        plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha="right")
-        ax2.tick_params(axis='y', labelcolor='r')
-        ax1.tick_params(axis='y', labelcolor='#68a5d7')
+        plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha="right", fontsize=14, fontweight='bold')
+
         fig.tight_layout()
         st.pyplot(fig)
 

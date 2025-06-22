@@ -430,7 +430,8 @@ with tab2:
                     del history[selected_day]
                     save_json_to_github(DAILY_RESULT_LOG, history)
                     st.success(f"已刪除 {selected_day} 的紀錄")
-                    st.experimental_rerun()
+                    st.rerun()
+
                 else:
                     st.warning("該日期已不在歷史紀錄中。")
             df_hist = pd.DataFrame(history[selected_day])
@@ -500,7 +501,8 @@ with tab3:
         ch4_log[input_date][input_tank] = input_ch4
         save_json_to_github("ch4_result_log.json", ch4_log)
         st.success(f"已儲存 {input_date} {input_tank} = {input_ch4:.1f}%")
-        st.experimental_rerun()
+        st.rerun()
+
 
     # ===== 刪除 CH₄ 紀錄 =====
     st.subheader("刪除 CH₄ 濃度紀錄")
@@ -510,7 +512,8 @@ with tab3:
             del ch4_log[del_date]
             save_json_to_github("ch4_result_log.json", ch4_log)
             st.success(f"已刪除 {del_date} 的 CH₄ 濃度紀錄")
-            st.experimental_rerun()
+            st.rerun()
+
 
     # ===== 主表與自動計算發電潛能、加權平均 =====
     records = []

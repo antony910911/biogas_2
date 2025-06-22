@@ -465,13 +465,15 @@ with tab2:
 
 
 with tab3:
-    st.header("⚡️ 沼氣 CH₄ 濃度/產氣量/發電潛能管理")
+    ch4_label = 'CH' + '\u2084'  # 'CH₄'
+
+    st.header(f"⚡️ 沼氣 {ch4_label} 濃度/產氣量/發電潛能管理")
 
     import matplotlib.dates as mdates
     # 字型設定
     font_path = "fonts/NotoSansTC-Regular.ttf"
     fm.fontManager.addfont(font_path)
-    plt.rcParams['font.sans-serif'] = ['Noto Sans TC', 'Microsoft JhengHei', 'sans-serif']
+    plt.rcParams['font.sans-serif'] = ['Noto Sans TC', 'Microsoft JhengHei', 'Arial Unicode MS', 'sans-serif']
     plt.rcParams['axes.unicode_minus'] = False
 
     def calc_power_potential(gas_volume, ch4_percent, eff=0.35):
@@ -484,7 +486,7 @@ with tab3:
     ch4_log = load_json_from_github("ch4_result_log.json") or {}
 
     # ===== 手動輸入/修正 CH₄ 濃度 =====
-    st.subheader("手動新增/修正 CH₄ 濃度")
+    st.subheader(f"手動新增/修正 {ch4_label} 濃度")
     all_dates = sorted(set(list(daily_log.keys()) + list(ch4_log.keys())), reverse=True)
     input_date = st.selectbox("選擇日期", all_dates, index=0 if all_dates else None)
     tank_choices = []
@@ -493,27 +495,25 @@ with tab3:
     else:
         tank_choices = ["A", "B", "C"]
     input_tank = st.selectbox("選擇槽別", tank_choices)
-    input_ch4 = st.number_input("輸入CH₄濃度（%）", min_value=0.0, max_value=100.0, step=0.1,
+    input_ch4 = st.number_input(f"輸入{ch4_label}濃度（%）", min_value=0.0, max_value=100.0, step=0.1,
                                 value=ch4_log.get(input_date, {}).get(input_tank, 0.0))
 
-    if st.button("儲存/覆寫該日該槽CH₄濃度"):
+    if st.button(f"儲存/覆寫該日該槽{ch4_label}濃度"):
         ch4_log.setdefault(input_date, {})
         ch4_log[input_date][input_tank] = input_ch4
         save_json_to_github("ch4_result_log.json", ch4_log)
         st.success(f"已儲存 {input_date} {input_tank} = {input_ch4:.1f}%")
         st.rerun()
 
-
     # ===== 刪除 CH₄ 紀錄 =====
-    st.subheader("刪除 CH₄ 濃度紀錄")
+    st.subheader(f"刪除 {ch4_label} 濃度紀錄")
     del_date = st.selectbox("選擇欲刪除日期", all_dates, key="del_date")
-    if del_date and st.button(f"刪除 {del_date} 的 CH₄ 紀錄"):
+    if del_date and st.button(f"刪除 {del_date} 的 {ch4_label} 紀錄"):
         if del_date in ch4_log:
             del ch4_log[del_date]
             save_json_to_github("ch4_result_log.json", ch4_log)
-            st.success(f"已刪除 {del_date} 的 CH₄ 濃度紀錄")
+            st.success(f"已刪除 {del_date} 的 {ch4_label} 濃度紀錄")
             st.rerun()
-
 
     # ===== 主表與自動計算發電潛能、加權平均 =====
     records = []
@@ -539,9 +539,9 @@ with tab3:
         records.append({
             "日期": d,
             "產氣量": total_gas,
-            "加權CH₄(%)": ch4_avg,
+            f"加權{ch4_label}(%)": ch4_avg,
             "發電潛能(kWh)": power_total,
-            "各槽CH₄": "; ".join(tank_ch4s)
+            f"各槽{ch4_label}": "; ".join(tank_ch4s)
         })
     df = pd.DataFrame(records)
 
@@ -556,17 +556,17 @@ with tab3:
         ax2 = ax1.twinx()
         width = 0.25
         ax1.bar(df["日期"], df["發電潛能(kWh)"], width=width, color='#68a5d7', alpha=0.8)
-        ax2.plot(df["日期"], df["加權CH₄(%)"], color='r', marker='o')
+        ax2.plot(df["日期"], df[f"加權{ch4_label}(%)"], color='r', marker='o')
         ax1.set_ylabel("發電潛能 (kWh)", fontsize=13)
-        ax2.set_ylabel("加權CH₄ (%)", fontsize=13, color='r')
-        plt.title("日發電潛能、加權CH₄濃度趨勢", fontsize=15)
+        ax2.set_ylabel(f"加權{ch4_label} (%)", fontsize=13, color='r')
+        plt.title(f"日發電潛能、加權{ch4_label}濃度趨勢", fontsize=15)
         ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
         plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha="right")
         ax2.tick_params(axis='y', labelcolor='r')
         fig.tight_layout()
         st.pyplot(fig)
 
-        st.markdown("#### 各槽每日CH₄濃度")
-        st.dataframe(df[["日期", "各槽CH₄"]])
+        st.markdown(f"#### 各槽每日{ch4_label}濃度")
+        st.dataframe(df[["日期", f"各槽{ch4_label}"]])
     else:
         st.info("暫無每日產氣資料，請先分析或上傳 daily_result_log。")

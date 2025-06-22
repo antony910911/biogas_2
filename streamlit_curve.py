@@ -112,7 +112,6 @@ except Exception as e:
     plt.rcParams['font.sans-serif'] = ['sans-serif']
 
 with tab1:
-
     st.title("🧪 沼氣管理平台 ℹ️ 使用說明")
     st.markdown("""
     ### 沼氣管理平台操作說明
@@ -131,8 +130,7 @@ with tab1:
     - 請確認 GitHub Token 設定正確，必要時重新整理頁面。
 
     ---
-    """
-    )
+    """)
 
 # === 路徑設定（僅曲線存在本地）===
 CURVE_DIR = "curves"

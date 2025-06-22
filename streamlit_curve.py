@@ -576,7 +576,7 @@ with tab3:
         width = 0.3
 
         # === bar: 加權CH₄(%) ===
-        bars = ax1.bar(df["日期"], df[f"加權{ch4_label}(%)"], width=width, color='#68a5d7', alpha=0.8, label=f"加權{ch4_label}(%)")
+        bars = ax1.bar(df["日期"], df[f"加權{ch4_label}(%)"], width=width, color='#0223db', alpha=0.8, label=f"加權{ch4_label}(%)")
 
         # --- 留頭頂空間 ---
         ymax = max(df[f"加權{ch4_label}(%)"].max(), 10)
@@ -591,13 +591,13 @@ with tab3:
         ax2.plot(df["日期"], df["發電潛能(kW)"], color='r', marker='o', label="發電潛能(kW)")
 
         # --- x軸/y軸標題與顏色 ---
-        ax1.set_ylabel(f"加權{ch4_label} (%)", fontsize=18, color='#0223db', fontweight='bold')
-        ax2.set_ylabel("發電潛能 (kW)", fontsize=18, color='r', fontweight='bold')
+        ax1.set_ylabel(f"加權{ch4_label} (%)", fontsize=16, color='#0223db', fontweight='bold')
+        ax2.set_ylabel("發電潛能 (kW)", fontsize=16, color='r', fontweight='bold')
         ax1.tick_params(axis='y', labelcolor='#0223db')
         ax2.tick_params(axis='y', labelcolor='r')
-        ax1.set_xlabel("日期", fontsize=18, fontweight='bold')
+        ax1.set_xlabel("日期", fontsize=16, fontweight='bold')
 
-        plt.title(f"加權{ch4_label}與發電潛能趨勢", fontsize=18, fontweight='bold')
+        plt.title(f"加權{ch4_label}與發電潛能趨勢", fontsize=20, fontweight='bold')
 
         # --- x軸美化 ---
         locator = mdates.AutoDateLocator(minticks=5, maxticks=15)

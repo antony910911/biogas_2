@@ -10,8 +10,8 @@
     "run": false
   },
   "C": {
-    "start_date": "2025-05-14",
+    "start_date": "2025-07-01",
     "lock": true,
-    "run": false
+    "run": true
   }
 }
